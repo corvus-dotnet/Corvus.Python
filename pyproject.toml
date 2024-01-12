@@ -12,6 +12,7 @@ delta-spark = "~2.2.0"
 [tool.poetry.group.dev.dependencies]
 jupyter = "~1.0.0"
 pandas = "~1.5.1"
+flake8 = "~6.1.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"
