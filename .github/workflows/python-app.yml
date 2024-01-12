@@ -1,0 +1,103 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    tags:
+    - '*'
+
+# on: push
+
+jobs:
+
+  run_gitversion:
+    runs-on: ubuntu-latest
+    name: Run GitVersion
+    # # only trigger for pushed tags
+    # if: |
+    #   startsWith(github.event.ref, 'refs/tags/')
+    outputs:
+      majorMinorPatch: ${{ steps.run_gitversion.outputs.MajorMinorPatch }}
+      semVer: ${{ steps.run_gitversion.outputs.SemVer }}
+      nuGetPreReleaseTag: ${{ steps.run_gitversion.outputs.NuGetPreReleaseTag }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.x'
+    - name: Install GitVersion
+      run: |
+        dotnet tool install -g GitVersion.Tool --version 5.8.0
+        echo "/github/home/.dotnet/tools" >> $GITHUB_PATH    
+    - name: Run GitVersion
+      id: run_gitversion
+      run: |
+        pwsh -noprofile -c '(dotnet-gitversion | ConvertFrom-Json).psobject.properties | % { echo ("::set-output name={0}::{1}" -f $_.name, $_.value) }'
+
+  build:
+    runs-on: ubuntu-latest
+    needs: run_gitversion
+    strategy:
+      matrix:
+        python-version: [3.8]
+    env:
+      PACKAGE_NAME: samplepackage
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
+        with:
+          registry: endjintestacr.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and run dev container task
+        uses: devcontainers/ci@v0.2
+        with:
+          # Change this to point to your image name
+          imageName: endjintestacr.azurecr.io/python-best-practices/experiments/example-devcontainer
+          env: |
+            PACKAGE_VERSION_NUMBER=${{ needs.run_gitversion.outputs.MajorMinorPatch }}
+          # Change this to be your CI task/script
+          runCmd: |
+            . build.sh
+
+      - name: Publish pytest coverage comment
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
+
+      - name: Create Release
+        id: create_release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ needs.run_gitversion.outputs.MajorMinorPatch }}
+          release_name: Release ${{ needs.run_gitversion.outputs.MajorMinorPatch }}
+          body: |
+            ${{ env.PACKAGE_NAME }} ${{ needs.run_gitversion.outputs.MajorMinorPatch }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./dist/${{ env.PACKAGE_NAME }}-${{ needs.run_gitversion.outputs.MajorMinorPatch }}-py3-none-any.whl
+          asset_name: ${{ env.PACKAGE_NAME }}-${{ needs.run_gitversion.outputs.MajorMinorPatch }}-py3-none-any.whl
+          asset_content_type: application/zip

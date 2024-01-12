@@ -1,0 +1,93 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.166.1/containers/python-3
+{
+	"name": "Python 3",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": "..",
+		"args": {
+			// Update 'VARIANT' to pick a Python version: 3, 3.6, 3.7, 3.8, 3.9, 3.10
+			"VARIANT": "3.10"
+		}
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.profiles.linux": {
+				  "pyspark": {
+					"path": "/spark/bin/pyspark",
+					"args": [
+						"--packages",
+						"io.delta:delta-core_2.12:2.2.0",
+						"--conf",
+						"\"spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension\"",
+						"--conf",
+						"\"spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog\""
+					]
+				  },
+				  "pwsh": {
+					"path": "/opt/microsoft/powershell/7/pwsh",
+					"args": [
+						"-noexit",
+						"-file",
+						"${containerWorkspaceFolder}/.venv/bin/Activate.ps1"
+					 ]
+				  }
+				},
+				"files.exclude": {
+					"**/__pycache__": true,
+					".pytest_cache": true,
+					".venv": true
+				},
+				"flake8.args": ["--config=.flake8"],
+				"python.defaultInterpreterPath": "./.venv/bin/python",
+				"python.pythonPath": "./.venv/bin/python",
+				"python.languageServer": "Pylance",
+				"python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
+				"python.formatting.autopep8Args": ["--max-line-length", "120", "--experimental"],
+				"python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+				"python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
+				"python.testing.pytestEnabled": true,
+				"python.terminal.activateEnvironment": true,
+				"python.experiments.optInto": ["pythonTerminalEnvVarActivation"],
+				"[python]": {
+					"editor.rulers": [120],
+					"rewrap.wrappingColumn": 120,
+					"rewrap.autoWrap.enabled": true
+				}
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-toolsai.jupyter",
+				"mechatroner.rainbow-csv",
+				"janisdd.vscode-edit-csv",
+				"ms-azuretools.vscode-docker",
+				"ms-vscode.PowerShell",
+				"tamasfe.even-better-toml",
+				"GrapeCity.gc-excelviewer",
+				"stkb.rewrap",
+				"jimasp.behave-vsc@0.6.4",
+				"alexkrechik.cucumberautocomplete",
+				"ms-python.flake8",
+				"GitHub.vscode-github-actions"
+			]
+		}
+	},
+
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [
+		4040		// make Spark UI available via http://localhost:4040
+	],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "poetry install",
+	// The default here seems to have flipped, commenting-out 'remoteUser' no longer causes the container
+	// to run as 'root', instead it ran as the non-privileged 'vscode' user which didn't have access
+	// to where 'poetry' is installed and potentially other tools too.
+	// More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "root"
+}
