@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "corvus_python"
-version = "0.1.0"
+version = "0.1.0b2"
 description = ""
 authors = ["endjin <endjineers@endjin.com>"]
 
