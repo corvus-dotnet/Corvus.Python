@@ -137,7 +137,7 @@ $SkipInit = $false
 $SkipVersion = $false
 $SkipBuild = $false
 $CleanBuild = $Clean
-$SkipRunPyTest = $true
+$SkipRunPyTest = $false
 $SkipTest = $false
 $SkipTestReport = $false
 $SkipAnalysis = $true
@@ -171,7 +171,7 @@ task PostVersion {}
 task PreBuild {}
 task PostBuild {}
 task PreTest {}
-task PostTest {
+task PostTest -If { !$SkipRunPyTest } {
     $testReportsPath = Join-Path $here "test-reports"
     if (Test-Path $testReportsPath) {
         Remove-Item -Path $testReportsPath -Recurse -Force
