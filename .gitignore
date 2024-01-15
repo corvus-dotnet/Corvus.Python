@@ -294,3 +294,5 @@ spark-warehouse/
 
 local*.*
 !local-submit-batch-job.ps1.template
+test-reports/
+pytest-test-results.xml
