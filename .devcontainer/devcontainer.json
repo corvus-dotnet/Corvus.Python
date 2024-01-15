@@ -2,7 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.166.1/containers/python-3
 {
 	"name": "Python 3",
-	"image": "endjin.azurecr.io/mdp/spark-sandbox:2.0.0-PullRequest0015.79--pre",
+	"image": "endjin.azurecr.io/mdp/spark-sandbox:2.0.0",
 
 	"customizations": {
 		"vscode": {
