@@ -1,0 +1,18 @@
+# Configuration optimised for Python package versioning conventions
+mode: ContinuousDeployment
+branches:
+  main:
+    tag: ''
+  develop:
+    tag: b
+  release:
+    tag: b
+  feature:
+    tag: b
+  pull-request:
+    tag: b
+  hotfix:
+    tag: b
+  support:
+    tag: b
+next-version: '0.1'
