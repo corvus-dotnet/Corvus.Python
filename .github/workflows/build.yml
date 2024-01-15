@@ -52,7 +52,7 @@ jobs:
 
   build:
     needs: prepareConfig
-    uses: endjin/Endjin.RecommendedPractices.GitHubActions/.github/workflows/scripted-build-pipeline.yml@main
+    uses: endjin/Endjin.RecommendedPractices.GitHubActions/.github/workflows/scripted-build-pipeline.yml@feature/coverage-files-config
     with:
       netSdkVersion: '8.0.x'
       # additionalNetSdkVersion: ''
