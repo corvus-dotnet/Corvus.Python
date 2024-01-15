@@ -2,14 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.166.1/containers/python-3
 {
 	"name": "Python 3",
-	"build": {
-		"dockerfile": "Dockerfile",
-		"context": "..",
-		"args": {
-			// Update 'VARIANT' to pick a Python version: 3, 3.6, 3.7, 3.8, 3.9, 3.10
-			"VARIANT": "3.10"
-		}
-	},
+	"image": "endjin.azurecr.io/mdp/spark-sandbox:2.0.0-PullRequest0015.79--pre",
 
 	"customizations": {
 		"vscode": {
