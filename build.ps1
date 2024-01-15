@@ -177,7 +177,7 @@ task PostTest -If { !$SkipRunPyTest } {
         Remove-Item -Path $testReportsPath -Recurse -Force
     }
     & $script:PoetryPath run coverage run -m behave --junit --junit-directory $testReportsPath
-    & $script:PoetryPath run junitparser merge $testReportsPath/*.xml $PyTestResultsPath
+    & $script:PoetryPath run junitparser merge (Join-Path $testReportsPath "*.xml") $PyTestResultsPath
     & $script:PoetryPath run coverage xml -o $PythonCoverageReportPath
 }
 task PreTestReport {}

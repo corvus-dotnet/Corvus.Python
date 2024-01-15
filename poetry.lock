@@ -881,6 +881,17 @@ files = [
 referencing = ">=0.31.0"
 
 [[package]]
+name = "junitparser"
+version = "3.1.1"
+description = "Manipulates JUnit/xUnit Result XML files"
+optional = false
+python-versions = "*"
+files = [
+    {file = "junitparser-3.1.1-py2.py3-none-any.whl", hash = "sha256:c9f00e286493a077088d5c44d819702fbb2dda9f55323b607a68d62d646fe659"},
+    {file = "junitparser-3.1.1.tar.gz", hash = "sha256:9e053d7df3f425481a0e61fc2db99e348f14858af0390cc2e533006954b1cf15"},
+]
+
+[[package]]
 name = "jupyter"
 version = "1.0.0"
 description = "Jupyter metapackage. Install all the Jupyter components in one go."
@@ -2521,4 +2532,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "12acd4a8e6badfb88ccfd6bdd758d60dabf0db5365d68454536404d341c964df"
+content-hash = "52fd30965dc3b305e5d16973b9843697090d76ffb2b57766026a1477b33004a5"
