@@ -73,10 +73,10 @@ param (
     [string] $BuildModulePath,
 
     [Parameter()]
-    [version] $BuildModuleVersion = "1.5.3",
+    [version] $BuildModuleVersion = "1.5.4",
 
     [Parameter()]
-    [string] $BuildModulePackageVersion = $BuildModuleVersion,
+    [string] $BuildModulePackageVersion = "1.5.4-beta0001",
 
     [Parameter()]
     [version] $InvokeBuildModuleVersion = "5.10.3"
@@ -171,15 +171,7 @@ task PostVersion {}
 task PreBuild {}
 task PostBuild {}
 task PreTest {}
-task PostTest -If { !$SkipRunPyTest } {
-    $testReportsPath = Join-Path $here "test-reports"
-    if (Test-Path $testReportsPath) {
-        Remove-Item -Path $testReportsPath -Recurse -Force
-    }
-    & $script:PoetryPath run coverage run -m behave --junit --junit-directory $testReportsPath
-    & $script:PoetryPath run junitparser merge (Join-Path $testReportsPath "*.xml") $PyTestResultsPath
-    & $script:PoetryPath run coverage xml -o $PythonCoverageReportPath
-}
+task PostTest {}
 task PreTestReport {}
 task PostTestReport {}
 task PreAnalysis {}
