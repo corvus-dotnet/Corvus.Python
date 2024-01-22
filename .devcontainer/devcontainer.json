@@ -8,17 +8,6 @@
 		"vscode": {
 			"settings": {
 				"terminal.integrated.profiles.linux": {
-				  "pyspark": {
-					"path": "/spark/bin/pyspark",
-					"args": [
-						"--packages",
-						"io.delta:delta-core_2.12:2.2.0",
-						"--conf",
-						"\"spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension\"",
-						"--conf",
-						"\"spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog\""
-					]
-				  },
 				  "pwsh": {
 					"path": "/opt/microsoft/powershell/7/pwsh",
 					"args": [
@@ -48,7 +37,8 @@
 					"editor.rulers": [120],
 					"rewrap.wrappingColumn": 120,
 					"rewrap.autoWrap.enabled": true
-				}
+				},
+				"jupyter.notebookFileRoot": "${containerWorkspaceFolder}"
 			},
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
