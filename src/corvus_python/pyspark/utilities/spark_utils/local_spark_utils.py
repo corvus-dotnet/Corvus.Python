@@ -5,7 +5,7 @@ class LSRLinkedServiceFailure(Exception):
     """Exception raised when the Linked Service can't be found.
 
     Attributes:
-        linked_service -- the name of the linked service
+        linked_service (str): the name of the linked service
     """
 
     def __init__(self, linked_service: str):
@@ -20,7 +20,7 @@ class SecretNotFound(Exception):
     """Exception raised when a Key Vault Secret can't be found.
 
     Attributes:
-        secret_name -- the name of the secret
+        secret_name (str): the name of the secret
     """
 
     def __init__(self, secret_name: str):
@@ -32,6 +32,13 @@ class SecretNotFound(Exception):
 
 
 class LocalCredentialUtils():
+    """Class which mirrors elements of the mssparkutils.credentials API. Intentionally not a full representation -
+    additional methods will be added to it as and when the need arises.
+
+    Attributes:
+        config (dict): Dictionary representing configuration required for `credentials` API. See
+        https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+    """
     def __init__(self, config: dict):
         self.config = config
 
@@ -57,6 +64,13 @@ class LocalCredentialUtils():
 
 
 class LocalSparkUtils():
+    """Class which mirrors elements of the mssparkutils API. Intentionally not a full representation - additional
+    sub-classes will be added to it as and when the need arises.
+
+    Attributes:
+        local_config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+        https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+    """
     def __init__(self, local_config: dict):
         self.config = local_config
         self.credentials = LocalCredentialUtils(local_config.get("credentials"))
