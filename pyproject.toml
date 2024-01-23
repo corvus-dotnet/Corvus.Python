@@ -4,6 +4,7 @@ version = "0.0.1"
 description = "An interim home for data-related & python-based utility functionality"
 authors = ["endjin <endjineers@endjin.com>"]
 license = "Apache-2.0"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "~3.10"
