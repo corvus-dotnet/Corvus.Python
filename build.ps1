@@ -142,7 +142,7 @@ $SkipTest = $false
 $SkipTestReport = $false
 $SkipAnalysis = $true
 $SkipPackage = $false
-$SkipPublish = $true
+$SkipPublish = $false
 
 
 # NOTE: Install the 'Endjin.RecommendedPractices.Build' VS Code extension to get handy
