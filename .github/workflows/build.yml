@@ -67,8 +67,9 @@ jobs:
       testPhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       packagePhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       additionalCachePaths: |
-        dist
+        .poetry
         .venv
+        dist
         pyproject.toml
       publishPhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       publishArtifactName: 'image-tag'
