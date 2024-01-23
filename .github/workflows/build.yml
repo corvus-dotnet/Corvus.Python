@@ -69,6 +69,7 @@ jobs:
       additionalCachePaths: |
         dist
         .venv
+        pyproject.toml
       publishPhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       publishArtifactName: 'image-tag'
       publishArtifactPath: 'image-tag'
