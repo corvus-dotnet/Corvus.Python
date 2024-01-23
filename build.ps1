@@ -178,7 +178,16 @@ task PreAnalysis {}
 task PostAnalysis {}
 task PrePackage {}
 task PostPackage {}
-task PrePublish {}
+task PrePublish {
+    Write-Build Yellow "root dir"
+    Get-ChildItem $here | Out-String | Write-Host
+
+    Write-Build Yellow ".venv dir"
+    Get-ChildItem $here/.venv | Out-String | Write-Host
+
+    Write-Build Yellow "dist dir"
+    Get-ChildItem $here/dist | Out-String | Write-Host
+}
 task PostPublish {}
 task RunLast {}
 
