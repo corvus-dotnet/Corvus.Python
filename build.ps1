@@ -178,21 +178,7 @@ task PreAnalysis {}
 task PostAnalysis {}
 task PrePackage {}
 task PostPackage {}
-task PrePublish {
-    Write-Build Yellow "root dir"
-    if ($IsWindows) {
-        Get-ChildItem $here | Out-String | Write-Host
-    }
-    else {
-        Get-ChildItem $here -Attributes Hidden,Normal | Out-String | Write-Host
-    }
-
-    Write-Build Yellow ".venv dir"
-    Get-ChildItem $here/.venv | Out-String | Write-Host
-
-    Write-Build Yellow "dist dir"
-    Get-ChildItem $here/dist | Out-String | Write-Host
-}
+task PrePublish {}
 task PostPublish {}
 task RunLast {}
 
