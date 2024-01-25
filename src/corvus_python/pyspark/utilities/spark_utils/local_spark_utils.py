@@ -63,6 +63,21 @@ class LocalCredentialUtils():
                     f"Unknown secret type {target_secret.get('type')}")
 
 
+class LocalEnvUtils():
+    """Class which mirrors elements of the mssparkutils.env API. Intentionally not a full representation - additional
+    methods will be added to it as and when the need arises.
+
+    Attributes:
+        config (dict): Dictionary representing configuration required for `credentials` API. See
+        https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+    """
+    def __init__(self, config: dict):
+        self.config = config
+
+    def getWorkspaceName(self) -> str:
+        return self.config.get("workspaceName")
+
+
 class LocalSparkUtils():
     """Class which mirrors elements of the mssparkutils API. Intentionally not a full representation - additional
     sub-classes will be added to it as and when the need arises.
@@ -74,3 +89,4 @@ class LocalSparkUtils():
     def __init__(self, local_config: dict):
         self.config = local_config
         self.credentials = LocalCredentialUtils(local_config.get("credentials"))
+        self.env = LocalEnvUtils(local_config.get("env"))
