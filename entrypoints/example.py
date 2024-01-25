@@ -5,3 +5,7 @@ spark_utils = get_spark_utils()
 cred = spark_utils.credentials.getSecretWithLS("KeyVault", "EnvironmentName")
 
 print(cred)
+
+workspace_name = spark_utils.env.getWorkspaceName()
+
+print(workspace_name)
