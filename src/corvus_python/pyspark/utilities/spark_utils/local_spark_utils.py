@@ -68,7 +68,7 @@ class LocalEnvUtils():
     methods will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing configuration required for `credentials` API. See
+        config (dict): Dictionary representing configuration required for `env` API. See
         https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
     """
     def __init__(self, config: dict):

@@ -34,6 +34,9 @@ Below shows the current, complete specification of the config file for the suppo
                 }
             }
         } 
+    },
+    "env": {
+        "workspaceName": "<workspace_name>"
     }
 }
 ```
