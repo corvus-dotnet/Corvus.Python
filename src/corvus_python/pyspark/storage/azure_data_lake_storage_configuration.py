@@ -5,16 +5,19 @@ from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
     """Implementation of StorageConfiguration that uses Azure Data Lake Gen 2 and assumes that there is a separate
-    ADLS file system for each layer, named 'bronze', 'silver' and 'gold'."""
+    ADLS file system for each layer, named 'bronze', 'silver' and 'gold'.
+
+    :param storage_account_name: The name of the storage account.
+    :type storage_account_name: str
+    :param storage_options: Provider-specific storage options to use when reading or writing data.
+    :type storage_options: dict
+    """
     def __init__(
             self,
             storage_account_name: str,
             storage_options: dict = None):
-        """Initializes a new instance of the AzureDataLakeFileSystemPerLayerConfiguration class.
-
-        Args:
-            storage_account_name (str): The name of the storage account.
-            storage_options (dict): Provider-specific storage options to use when reading or writing data."""
+        """Constructor method
+        """
 
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
@@ -25,18 +28,22 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
 
 class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):
     """Implementation of StorageConfiguration that uses Azure Data Lake Gen 2 and assumes that there is a single
-    ADLS file system containing top level folders for each layer, named 'bronze', 'silver' and 'gold'."""
+    ADLS file system containing top level folders for each layer, named 'bronze', 'silver' and 'gold'.
+
+    :param storage_account_name: The name of the storage account.
+    :type storage_account_name: str
+    :param file_system_name: The name of the file system.
+    :type file_system_name: str
+    :param storage_options: Provider-specific storage options to use when reading or writing data.
+    :type storage_options: dict
+    """
     def __init__(
             self,
             storage_account_name: str,
             file_system_name: str,
             storage_options: dict = None):
-        """Initializes a new instance of the AzureDataLakeSingleFileSystemConfiguration class.
-
-        Args:
-            storage_account_name (str): The name of the storage account.
-            file_system_name (str): The name of the file system.
-            storage_options (dict): Provider-specific storage options to use when reading or writing data."""
+        """Constructor method
+        """
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
         self.file_system_name = file_system_name

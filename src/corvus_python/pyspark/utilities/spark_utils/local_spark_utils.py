@@ -6,11 +6,13 @@ from azure.identity import AzureCliCredential, CredentialUnavailableError
 class LSRLinkedServiceFailure(Exception):
     """Exception raised when the Linked Service can't be found.
 
-    Attributes:
-        linked_service (str): the name of the linked service
+    :param linked_service: The name of the linked service
+    :type linked_service: str
     """
 
     def __init__(self, linked_service: str):
+        """Constructor method
+        """
         self.linked_service = linked_service
         self.message = f"""
         Could not find Linked Service '{linked_service}'; the linked service does not exist or is not published.
@@ -21,8 +23,8 @@ class LSRLinkedServiceFailure(Exception):
 class SecretNotFound(Exception):
     """Exception raised when a Key Vault Secret can't be found.
 
-    Attributes:
-        secret_name (str): the name of the secret
+    :param secret_name: The name of the secret
+    :type secret_name: str
     """
 
     def __init__(self, secret_name: str):
@@ -37,9 +39,9 @@ class LocalCredentialUtils():
     """Class which mirrors elements of the mssparkutils.credentials API. Intentionally not a full representation -
     additional methods will be added to it as and when the need arises.
 
-    Attributes:
-        config (dict): Dictionary representing configuration required for `credentials` API. See
+    :param config: Dictionary representing configuration required for `credentials` API. See
         https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+    :type config: dict
     """
     def __init__(self, config: dict):
         self.config = config
@@ -102,9 +104,9 @@ class LocalEnvUtils():
     """Class which mirrors elements of the mssparkutils.env API. Intentionally not a full representation - additional
     methods will be added to it as and when the need arises.
 
-    Attributes:
-        config (dict): Dictionary representing configuration required for `env` API. See
+    :param config: Dictionary representing configuration required for `env` API. See
         https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+    :type config: dict
     """
     def __init__(self, config: dict):
         self.config = config
@@ -117,9 +119,9 @@ class LocalSparkUtils():
     """Class which mirrors elements of the mssparkutils API. Intentionally not a full representation - additional
     sub-classes will be added to it as and when the need arises.
 
-    Attributes:
-        local_config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+    :param local_config: Dictionary representing full `LocalSparkUtils` configuration. See
         https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+    :type local_config: dict
     """
     def __init__(self, local_config: dict):
         self.config = local_config
