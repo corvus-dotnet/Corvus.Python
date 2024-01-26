@@ -1,5 +1,7 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
+from azure.identity import AzureCliCredential, CredentialUnavailableError
+
 
 class LSRLinkedServiceFailure(Exception):
     """Exception raised when the Linked Service can't be found.
@@ -61,6 +63,39 @@ class LocalCredentialUtils():
             case _:
                 raise ValueError(
                     f"Unknown secret type {target_secret.get('type')}")
+
+    def getToken(self, audience: str) -> str:
+        scopes = {
+            "Storage": "https://storage.azure.com/.default",
+            "Vault": "https://vault.azure.net/.default",
+            "AzureManagement": "https://management.azure.com/.default",
+            "DW": "https://database.windows.net/.default",
+            "Synapse": "https://dev.azuresynapse.net/.default",
+            "DataLakeStore": "https://datalake.azure.net/.default",
+            "DF": "https://datafactory.azure.net/.default",
+            "AzureDataExplorer": "https://kusto.kusto.windows.net/.default",
+            "AzureOSSDB": "https://ossrdbms-aad.database.windows.net/.default",
+        }
+
+        scope = scopes.get(audience)
+
+        if not scope:
+            raise ValueError(f"Unsupported audience '{audience}'")
+
+        tenant_id = None
+        get_token_config = self.config.get("getToken")
+        if get_token_config:
+            tenant_id = get_token_config.get("tenantId")
+
+        credential = AzureCliCredential()
+
+        try:
+            token = credential.get_token(scope, tenant_id=tenant_id)
+        except CredentialUnavailableError:
+            raise RuntimeError("Please login to the Azure CLI using `az login --tenant <tenant> "
+                               "--use-device-code` to authenticate.")
+
+        return token
 
 
 class LocalEnvUtils():

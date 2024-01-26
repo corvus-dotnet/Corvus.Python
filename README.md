@@ -23,6 +23,7 @@ The currently supported operations of the [`mssparkutils` API](https://learn.mic
 
 - `credentials`
     - `getSecretWithLS(linkedService, secret)`
+    - `getToken(audience)`
 - `env`
     - `getWorkspaceName()`
 
@@ -44,7 +45,10 @@ Below shows the current, complete specification of the config file for the suppo
                     "value": "<key_vault_secret_value>"
                 }
             }
-        } 
+        },
+        "getToken": {
+            "tenantId": "<tenant_id (optional)>
+        }
     },
     "env": {
         "workspaceName": "<workspace_name>"
