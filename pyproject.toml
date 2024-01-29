@@ -10,13 +10,13 @@ readme = "README.md"
 python = "~3.10"
 pyspark = "~3.3.1"
 delta-spark = "~2.2.0"
-azure-identity = "^1.15.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "~1.0.0"
 pandas = "~1.5.1"
 flake8 = "~6.1.0"
 dummy-notebookutils = "^1.5.1"
+azure-identity = "^1.7.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"

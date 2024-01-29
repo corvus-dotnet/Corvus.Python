@@ -8,7 +8,7 @@ print(cred)
 
 token = spark_utils.credentials.getToken("Synapse")
 
-print(token)
+assert token
 
 workspace_name = spark_utils.env.getWorkspaceName()
 

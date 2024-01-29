@@ -1,0 +1,40 @@
+[CmdletBinding()]
+param (
+    [Parameter(Mandatory=$true)]
+    [string]
+    $EntryPointFilePath
+)
+
+$StorageAccountName = ""
+$FileSystemName = ""
+$PackageName = ""
+$WorkspaceName = ""
+$SparkPoolName = ""
+$entrypointFilePath = $EntryPointFilePath
+
+Write-Output("Entry point file path: $entryPointFilePath")
+Write-Output("Package name: $PackageName")
+
+$fileExtension = [IO.Path]::GetExtension($entryPointFilePath)
+
+if ($fileExtension -eq ".ipynb" )
+{
+    Write-Host "Converting .ipynb file to .py file before submitting batch job."
+    Invoke-Command -ScriptBlock { jupyter nbconvert --to python $entryPointFilePath --output-dir "/tmp" }
+
+    $fileName = [IO.Path]::GetFileNameWithoutExtension($entryPointFilePath)
+    $entryPointFilePath = "\tmp\$fileName.py"
+}
+
+$env:AZURE_TENANT_ID = $env:AZURE_TENANT_ID ?? (Read-Host "AZURE_TENANT_ID environment variable not set. Please enter the target Tenant ID")
+$env:AZURE_SUBSCRIPTION_ID = $env:AZURE_SUBSCRIPTION_ID ?? (Read-Host "AZURE_SUBSCRIPTION_ID environment variable not set. Please enter the target Subscription ID")
+
+./synapse_utils/submit-synapse-batch-job.ps1 `
+    -AadTenantId $env:AZURE_TENANT_ID `
+    -SubscriptionId $env:AZURE_SUBSCRIPTION_ID `
+    -WorkspaceName $WorkspaceName `
+    -SparkPoolName $SparkPoolName `
+    -StorageAccountName $StorageAccountName `
+    -FileSystemName $FileSystemName `
+    -PackageName $PackageName `
+    -EntrypointFilePath $entrypointFilePath
