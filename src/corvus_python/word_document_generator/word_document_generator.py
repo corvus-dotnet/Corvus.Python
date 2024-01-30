@@ -35,6 +35,8 @@ class WordDocumentGenerator:
 
     def get_template(self, template_file: IO[bytes] | str | PathLike) -> DocxTemplate:
         """Get a template object from the provided file.
+        The file must be a `.docx` file. See https://docxtpl.readthedocs.io/en/latest/
+        for more information on the templating language.
 
         Args:
             template_file (IO[bytes] | str | PathLike): The file to get the template from.
