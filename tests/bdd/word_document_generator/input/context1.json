@@ -1,0 +1,18 @@
+{
+    "name": "Joe Bloggs",
+    "jobs": [
+        {
+            "role": "Frobulator",
+            "responsibilities": [
+                "Frobulating",
+                "De-frobulating"
+            ]
+        },
+        {
+            "role": "Endjineer",
+            "responsibilities": [
+                "Endjineering"
+            ]
+        }
+    ]
+}

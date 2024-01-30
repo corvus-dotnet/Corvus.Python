@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "corvus-python"
-version = "0.0.1"
+version = "0.1.1a3"
 description = "An interim home for data-related & python-based utility functionality"
 authors = ["endjin <endjineers@endjin.com>"]
 license = "Apache-2.0"
@@ -11,6 +11,7 @@ python = "~3.10"
 pyspark = "~3.3.1"
 delta-spark = "~2.2.0"
 azure-identity = "^1.15.0"
+docxtpl = "^0.16.7"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "~1.0.0"
