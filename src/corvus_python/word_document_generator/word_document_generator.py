@@ -23,13 +23,15 @@ class WordDocumentGenerator:
 
         template.render(context)
 
-        # save to byte array
-        stream = BytesIO()
-        template.save(stream)
-        result = stream.getvalue()
+        try:
+            # save to byte array
+            stream = BytesIO()
+            template.save(stream)
+            result = stream.getvalue()
 
-        # dispose of the stream
-        stream.close()
+        finally:
+            # dispose of the stream
+            stream.close()
 
         return result
 
