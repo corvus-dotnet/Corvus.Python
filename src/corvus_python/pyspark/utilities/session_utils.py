@@ -2,6 +2,7 @@
 
 from pyspark.sql import SparkSession
 from delta import configure_spark_with_delta_pip
+import os
 from ..storage import StorageConfiguration, LocalFileSystemStorageConfiguration
 
 
@@ -50,6 +51,16 @@ def create_spark_session(
         extra_packages.append("com.endjin.hadoop:hadoop-azure-token-providers:1.0.1")
 
     if enable_hive_support:
+        path_to_lakehouse = os.path.join(os.getcwd(), "lakehouses")
+        if os.path.exists(path_to_lakehouse):
+            # Set custom location for Hive Metastore
+            builder = builder \
+                .config("spark.sql.warehouse.dir", path_to_lakehouse) \
+                .config(
+                    "javax.jdo.option.ConnectionURL",
+                    f"jdbc:derby:;databaseName={path_to_lakehouse}/metastore_db;create=true"
+                )
+
         builder = builder.enableHiveSupport()
 
     spark = configure_spark_with_delta_pip(builder, extra_packages=extra_packages).getOrCreate()
