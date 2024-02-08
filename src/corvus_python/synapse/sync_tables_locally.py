@@ -7,6 +7,7 @@ import pyodbc
 import struct
 import pandas as pd
 import os
+import logging
 
 from corvus_python.pyspark.storage import LocalFileSystemStorageConfiguration
 from corvus_python.pyspark.utilities import create_spark_session
@@ -43,7 +44,8 @@ def _get_sql_connection(workspace_name):
 def sync_tables_to_local_spark(
         workspace_name: str,
         table_infos: List[TableInfo],
-        local_fs_base_path: str = os.path.join(os.getcwd(), "data")
+        local_fs_base_path: str = os.path.join(os.getcwd(), "data"),
+        overwrite: bool = False
         ):
     """Syncs tables from a Synapse workspace to a local Spark metastore.
     """
@@ -53,12 +55,22 @@ def sync_tables_to_local_spark(
     file_system_configuration = LocalFileSystemStorageConfiguration(local_fs_base_path)
     spark = create_spark_session("table_syncer", file_system_configuration)
 
+
     for table_info in table_infos:
         _ = spark.sql(f"CREATE DATABASE IF NOT EXISTS {table_info.database_name}")
 
         for table in table_info.tables:
-            pdf = pd.read_sql(f'SELECT * FROM {table_info.database_name}.dbo.{table}', conn)
-            spark.createDataFrame(pdf).coalesce(1).write \
-                .format("delta") \
-                .mode("overwrite") \
-                .saveAsTable(f"{table_info.database_name}.{table}")
+            table_exists = spark.catalog.tableExists(table, table_info.database_name)
+
+            if table_exists and not overwrite:
+                print('\033[93m' + f"Table '{table}' in database '{table_info.database_name}' already exists and overwrite is set to False. Skipping table sync." + '\033[0m')  # noqa: E501
+                continue
+            else:
+                pdf = pd.read_sql(f'SELECT * FROM {table_info.database_name}.dbo.{table}', conn)
+                spark.createDataFrame(pdf).coalesce(1).write \
+                    .format("delta") \
+                    .mode("overwrite") \
+                    .saveAsTable(f"{table_info.database_name}.{table}")
+
+    conn.close()
+    spark.stop()
