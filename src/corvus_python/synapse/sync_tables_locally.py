@@ -13,14 +13,29 @@ from corvus_python.pyspark.utilities import create_spark_session
 
 
 @dataclass
-class TableInfo:
-    """Dataclass to hold information about a table in a Synapse workspace.
+class ObjectSyncDetails:
+    """Holds information about objects to sync from a Synapse workspace.
+
+    Attributes:
+        database_name (str): Name of the database.
+        tables (List[str]): List of tables in the database.    
     """
     database_name: str
-    tables: list
+    tables: List[str]
 
 
-def _get_sql_connection(workspace_name):
+def _get_sql_connection(workspace_name: str) -> pyodbc.Connection:
+    """Gets an ODBC connection to the SQL Serverless endpoint of a Synapse workspace.
+
+    Args:
+        workspace_name (str): Name of the workspace.
+    
+    Returns:
+        pyodbc.Connection: ODBC connection to the SQL Serverless endpoint.
+
+    Raises:
+        RuntimeError: If user is not logged into the Azure CLI.
+    """
     server = f'{workspace_name}-ondemand.sql.azuresynapse.net'
     database = 'master'
     driver = '{ODBC Driver 17 for SQL Server}'
@@ -42,11 +57,19 @@ def _get_sql_connection(workspace_name):
 
 def sync_tables_to_local_spark(
         workspace_name: str,
-        table_infos: List[TableInfo],
+        table_infos: List[ObjectSyncDetails],
         local_fs_base_path: str = os.path.join(os.getcwd(), "data"),
         overwrite: bool = False
         ):
     """Syncs tables from a Synapse workspace to a local Spark metastore.
+
+    Args:
+        workspace_name (str): Name of the Synapse workspace.
+        table_infos (List[ObjectSyncDetails]): List of ObjectSyncDetails containing info about the tables to sync.
+        local_fs_base_path (str, optional): Base path for the local file system.
+            Defaults to os.path.join(os.getcwd(), "data").
+        overwrite (bool, optional): Whether to overwrite the tables if they already exist in the local metastore.
+            Defaults to False.
     """
 
     conn = _get_sql_connection(workspace_name)
