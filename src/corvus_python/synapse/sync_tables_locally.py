@@ -18,7 +18,7 @@ class ObjectSyncDetails:
 
     Attributes:
         database_name (str): Name of the database.
-        tables (List[str]): List of tables in the database.    
+        tables (List[str]): List of tables in the database.
     """
     database_name: str
     tables: List[str]
@@ -29,7 +29,7 @@ def _get_sql_connection(workspace_name: str) -> pyodbc.Connection:
 
     Args:
         workspace_name (str): Name of the workspace.
-    
+
     Returns:
         pyodbc.Connection: ODBC connection to the SQL Serverless endpoint.
 
