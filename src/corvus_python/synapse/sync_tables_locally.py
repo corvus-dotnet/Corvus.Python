@@ -69,7 +69,7 @@ def sync_tables_to_local_spark(
         local_fs_base_path (str, optional): Base path for the local file system.
             Defaults to os.path.join(os.getcwd(), "data").
         overwrite (bool, optional): Whether to overwrite the tables if they already exist in the local metastore.
-            Defaults to False.
+            Defaults to False, to avoid unnecessary pulling of data from Synapse (and therefore egress charges).
     """
 
     conn = _get_sql_connection(workspace_name)
