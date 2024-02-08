@@ -7,7 +7,6 @@ import pyodbc
 import struct
 import pandas as pd
 import os
-import logging
 
 from corvus_python.pyspark.storage import LocalFileSystemStorageConfiguration
 from corvus_python.pyspark.utilities import create_spark_session
@@ -54,7 +53,6 @@ def sync_tables_to_local_spark(
 
     file_system_configuration = LocalFileSystemStorageConfiguration(local_fs_base_path)
     spark = create_spark_session("table_syncer", file_system_configuration)
-
 
     for table_info in table_infos:
         _ = spark.sql(f"CREATE DATABASE IF NOT EXISTS {table_info.database_name}")
