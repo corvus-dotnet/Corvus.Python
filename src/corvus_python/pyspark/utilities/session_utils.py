@@ -38,7 +38,9 @@ def create_spark_session(
     )
 
     if isinstance(file_system_configuration, LocalFileSystemStorageConfiguration):
-        builder = builder.config("spark.sql.warehouse.dir", file_system_configuration.base_path)
+        # Modify where databases are stored by default (i.e. when not specifying the `LOCATION` clause in a `CREATE
+        # DATABASE` statement).
+        builder = builder.config("spark.sql.warehouse.dir", os.path.join(os.getcwd(), "warehouse"))
 
     extra_packages = []
 
@@ -51,17 +53,18 @@ def create_spark_session(
         extra_packages.append("com.endjin.hadoop:hadoop-azure-token-providers:1.0.1")
 
     if enable_hive_support:
-        path_to_lakehouse = os.path.join(os.getcwd(), "lakehouses")
-        if os.path.exists(path_to_lakehouse):
-            # Set custom location for Hive Metastore
-            builder = builder \
-                .config("spark.sql.warehouse.dir", path_to_lakehouse) \
-                .config(
-                    "javax.jdo.option.ConnectionURL",
-                    f"jdbc:derby:;databaseName={path_to_lakehouse}/metastore_db;create=true"
-                )
+        # Modify where the hive metastore and derby log files are stored. This is necessary because the default location
+        # is in the system's temporary directory, which is not guaranteed to be the same across different runs of the
+        # app. This can cause issues with the metastore not being found when the app is restarted.
+        hive_metastore_dir = os.path.join(os.getcwd(), "metastore")
 
-        builder = builder.enableHiveSupport()
+        builder = builder \
+            .config(
+                "javax.jdo.option.ConnectionURL",
+                f"jdbc:derby:;databaseName={hive_metastore_dir}/metastore_db;create=true"
+            ) \
+            .config("spark.driver.extraJavaOptions", f"-Dderby.system.home={hive_metastore_dir}") \
+            .enableHiveSupport()
 
     spark = configure_spark_with_delta_pip(builder, extra_packages=extra_packages).getOrCreate()
 

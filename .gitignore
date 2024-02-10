@@ -300,4 +300,3 @@ test-reports/
 pytest-test-results.xml
 behave-test-results.xml
 behave-test-reports-temp/
-lakehouses/
