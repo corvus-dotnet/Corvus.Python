@@ -1,6 +1,6 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-from azure.identity import AzureCliCredential, CredentialUnavailableError
+from corvus_python.auth.local_cred_utils import get_az_cli_token
 
 
 class LSRLinkedServiceFailure(Exception):
@@ -87,15 +87,7 @@ class LocalCredentialUtils():
         if get_token_config:
             tenant_id = get_token_config.get("tenantId")
 
-        credential = AzureCliCredential()
-
-        try:
-            token = credential.get_token(scope, tenant_id=tenant_id)
-        except CredentialUnavailableError:
-            raise RuntimeError("Please login to the Azure CLI using `az login --tenant <tenant> "
-                               "--use-device-code` to authenticate.")
-
-        return token
+        return get_az_cli_token(scope, tenant_id=tenant_id)
 
 
 class LocalEnvUtils():
@@ -110,7 +102,7 @@ class LocalEnvUtils():
         self.config = config
 
     def getWorkspaceName(self) -> str:
-        return self.config.get("workspaceName")
+        return self.config.get("getWorkspaceName")
 
 
 class LocalSparkUtils():
