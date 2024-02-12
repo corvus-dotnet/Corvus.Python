@@ -37,12 +37,13 @@ def create_spark_session(
             "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     )
 
+    extra_packages = []
+
     if isinstance(file_system_configuration, LocalFileSystemStorageConfiguration):
         # Modify where databases are stored by default (i.e. when not specifying the `LOCATION` clause in a `CREATE
         # DATABASE` statement).
         builder = builder.config("spark.sql.warehouse.dir", os.path.join(os.getcwd(), "warehouse"))
-
-    extra_packages = []
+        extra_packages.append("com.microsoft.sqlserver:mssql-jdbc:12.6.0.jre11")
 
     if install_hadoop_azure_package:
         extra_packages.append("org.apache.hadoop:hadoop-azure:3.3.3")
