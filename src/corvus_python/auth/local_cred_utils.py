@@ -10,7 +10,7 @@ def get_az_cli_token(resource: str, tenant_id: str = None) -> str:
         tenant_id (str): The tenant ID to use for authentication.
 
     Returns:
-        AzureCliCredential: The Azure CLI credential for the resource.
+        str: The Azure CLI token for the resource.
 
     Raises:
         RuntimeError: If user is not logged into the Azure CLI, or logged into the wrong tenant.
