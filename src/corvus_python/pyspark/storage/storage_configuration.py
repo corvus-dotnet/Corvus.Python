@@ -17,11 +17,14 @@ class DataLakeLayer(str, Enum):
 class StorageConfiguration(ABC):
     """Base class for a class that provides configuration for persistent storage.
 
-    Args:
+    Attributes:
         storage_options (dict): Provider-specific storage options to use when reading or writing data.
     """
     def __init__(self, storage_options: dict):
         """Constructor method
+
+        Args:
+            storage_options (dict): Provider-specific storage options to use when reading or writing data.
         """
         self.storage_options = storage_options
 
