@@ -17,8 +17,8 @@ class DataLakeLayer(str, Enum):
 class StorageConfiguration(ABC):
     """Base class for a class that provides configuration for persistent storage.
 
-    :param storage_options: Provider-specific storage options to use when reading or writing data.
-    :type storage_options: dict
+    Args:
+        storage_options (dict): Provider-specific storage options to use when reading or writing data.
     """
     def __init__(self, storage_options: dict):
         """Constructor method
@@ -29,11 +29,11 @@ class StorageConfiguration(ABC):
     def get_full_path(self, layer: DataLakeLayer, path: str):
         """Returns the full path to a file in storage.
 
-        :param layer: The layer in the data lake that contains the file.
-        :type layer: DataLakeLayer
-        :param path: The relative path to the file. This should not have a leading separator.
-        :type path: str
-        :return: The full path to the file in storage.
-        :rtype: str
+        Args:
+            layer (DataLakeLayer): The layer in the data lake that contains the file.
+            path (str): The relative path to the file. This should not have a leading separator.
+
+        Returns:
+            str: The full path to the file in storage.
         """
         pass

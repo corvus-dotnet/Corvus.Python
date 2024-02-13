@@ -7,10 +7,10 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
     """Implementation of StorageConfiguration that uses Azure Data Lake Gen 2 and assumes that there is a separate
     ADLS file system for each layer, named 'bronze', 'silver' and 'gold'.
 
-    :param storage_account_name: The name of the storage account.
-    :type storage_account_name: str
-    :param storage_options: Provider-specific storage options to use when reading or writing data.
-    :type storage_options: dict
+    Args:
+        storage_account_name (str): The name of the storage account.
+        storage_options (dict, optional): Provider-specific storage options to use when reading or writing data.
+
     """
     def __init__(
             self,
@@ -30,12 +30,11 @@ class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):
     """Implementation of StorageConfiguration that uses Azure Data Lake Gen 2 and assumes that there is a single
     ADLS file system containing top level folders for each layer, named 'bronze', 'silver' and 'gold'.
 
-    :param storage_account_name: The name of the storage account.
-    :type storage_account_name: str
-    :param file_system_name: The name of the file system.
-    :type file_system_name: str
-    :param storage_options: Provider-specific storage options to use when reading or writing data.
-    :type storage_options: dict
+    Args:
+        storage_account_name (str): The name of the storage account.
+        file_system_name (str): The name of the file system.
+        storage_options (dict, optional): Provider-specific storage options to use when reading or writing data.
+
     """
     def __init__(
             self,

@@ -14,22 +14,19 @@ def create_spark_session(
     """
     Creates a Spark session with Delta Lake support. This is intended to be used for local development and testing.
 
-    :param workload_name: The name of the workload. This will be used as the name of the Spark application.
-    :type workload_name: str
-    :param file_system_configuration: The storage configuration to use for the Spark session.
-    :type file_system_configuration: StorageConfiguration
-    :param enable_hive_support: Whether to enable Hive support. Defaults to True. When set to true,
-        the persistent hive metastore will be created in the current working directory.
-    :type enable_hive_support: bool, optional
-    :param install_hadoop_azure_package: Whether to install the hadoop-azure package. Defaults to False.
-        Should be set to True if using Azure Data Lake Storage Gen 2.
-    :type install_hadoop_azure_package: bool, optional
-    :param enable_az_cli_auth: Whether to enable Azure CLI authentication. Defaults to False. If using
-        Azure Data Lake Storage Gen 2, this should be set to True to enable authentication using your current
-        Azure CLI credentials.
-    :type enable_az_cli_auth: bool, optional
-    :return: The created Spark session.
-    :rtype: SparkSession
+    Args:
+        workload_name (str): The name of the workload. This will be used as the name of the Spark application.
+        file_system_configuration (StorageConfiguration): The storage configuration to use for the Spark session.
+        enable_hive_support (bool, optional): Whether to enable Hive support. Defaults to True. When set to true,
+            the persistent hive metastore will be created in the current working directory.
+        install_hadoop_azure_package (bool, optional): Whether to install the hadoop-azure package. Defaults to False.
+            Should be set to True if using Azure Data Lake Storage Gen 2.
+        enable_az_cli_auth (bool, optional): Whether to enable Azure CLI authentication. Defaults to False. If using
+            Azure Data Lake Storage Gen 2, this should be set to True to enable authentication using your current
+            Azure CLI credentials.
+
+    Returns:
+        SparkSession: The created Spark session.
     """
 
     builder = (
