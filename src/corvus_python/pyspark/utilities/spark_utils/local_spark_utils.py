@@ -1,6 +1,6 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-from corvus_python.auth.local_cred_utils import get_az_cli_token
+from corvus_python.auth import get_az_cli_token
 
 
 class LSRLinkedServiceFailure(Exception):

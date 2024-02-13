@@ -8,7 +8,7 @@ import os
 
 from corvus_python.pyspark.storage import LocalFileSystemStorageConfiguration
 from corvus_python.pyspark.utilities import create_spark_session
-from corvus_python.auth.local_cred_utils import get_az_cli_token
+from corvus_python.auth import get_az_cli_token
 
 
 @dataclass
@@ -62,6 +62,9 @@ def _get_jdbc_connection_properties(workspace_name: str) -> Tuple[str, dict]:
 
     Returns:
         Tuple[str, dict]: Tuple containing the JDBC URL and connection properties.
+
+    Raises:
+        RuntimeError: If user is not logged into the Azure CLI.
     """
     server = f'{workspace_name}-ondemand.sql.azuresynapse.net'
     database = 'master'
