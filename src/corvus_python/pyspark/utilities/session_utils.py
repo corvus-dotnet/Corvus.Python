@@ -11,7 +11,8 @@ def create_spark_session(
         enable_hive_support: bool = True,
         install_hadoop_azure_package: bool = False,
         enable_az_cli_auth: bool = False) -> SparkSession:
-    """Creates a Spark session with Delta Lake support. This is intended to be used for local development and testing.
+    """
+    Creates a Spark session with Delta Lake support. This is intended to be used for local development and testing.
 
     Args:
         workload_name (str): The name of the workload. This will be used as the name of the Spark application.
@@ -23,6 +24,9 @@ def create_spark_session(
         enable_az_cli_auth (bool, optional): Whether to enable Azure CLI authentication. Defaults to False. If using
             Azure Data Lake Storage Gen 2, this should be set to True to enable authentication using your current
             Azure CLI credentials.
+
+    Returns:
+        SparkSession: The created Spark session.
     """
 
     builder = (

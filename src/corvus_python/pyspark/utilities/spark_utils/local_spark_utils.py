@@ -7,10 +7,16 @@ class LSRLinkedServiceFailure(Exception):
     """Exception raised when the Linked Service can't be found.
 
     Attributes:
-        linked_service (str): the name of the linked service
+        linked_service (str): The name of the linked service.
+        message (str): The error message explaining the failure.
     """
 
     def __init__(self, linked_service: str):
+        """Constructor method.
+
+        Args:
+            linked_service (str): The name of the linked service.
+        """
         self.linked_service = linked_service
         self.message = f"""
         Could not find Linked Service '{linked_service}'; the linked service does not exist or is not published.
@@ -22,10 +28,17 @@ class SecretNotFound(Exception):
     """Exception raised when a Key Vault Secret can't be found.
 
     Attributes:
-        secret_name (str): the name of the secret
+        secret_name (str): The name of the secret.
+        message (str): The error message explaining the failure.
     """
 
     def __init__(self, secret_name: str):
+        """Constructor method.
+
+        Args:
+            secret_name (str): The name of the secret.
+        """
+
         self.secret_name = secret_name
         self.message = f"""
         A secret with (name/id) '{secret_name}' was not found in this key vault.
@@ -39,9 +52,16 @@ class LocalCredentialUtils():
 
     Attributes:
         config (dict): Dictionary representing configuration required for `credentials` API. See
-        https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+            https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
     """
+
     def __init__(self, config: dict):
+        """Constructor method
+
+        Args:
+            config (dict): Dictionary representing configuration required for `credentials` API. See
+                https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+        """
         self.config = config
 
     def getSecretWithLS(self, linked_service: str, secret_name: str) -> str:
@@ -104,9 +124,17 @@ class LocalEnvUtils():
 
     Attributes:
         config (dict): Dictionary representing configuration required for `env` API. See
-        https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+            https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+
     """
     def __init__(self, config: dict):
+        """Constructor method
+
+        Args:
+            config (dict): Dictionary representing configuration required for `env` API. See
+                https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+        """
+
         self.config = config
 
     def getWorkspaceName(self) -> str:
@@ -118,10 +146,18 @@ class LocalSparkUtils():
     sub-classes will be added to it as and when the need arises.
 
     Attributes:
-        local_config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
-        https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+        config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+            https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+        credentials (dict): LocalCredentialUtils instance.
+        env (dict): LocalEnvUtils instance.
     """
     def __init__(self, local_config: dict):
+        """Constructor method
+
+        Args:
+            local_config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+                https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
+        """
         self.config = local_config
         self.credentials = LocalCredentialUtils(local_config.get("credentials"))
         self.env = LocalEnvUtils(local_config.get("env"))

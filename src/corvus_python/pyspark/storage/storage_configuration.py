@@ -8,19 +8,24 @@ class DataLakeLayer(str, Enum):
     """Enumeration for the different layers in the data lake.
     For more information on medallion architecture, see:
     - https://www.databricks.com/glossary/medallion-architecture
-    - https://www.databricks.com/glossary/medallion-architecture"""
+    """
     BRONZE = "bronze",
     SILVER = "silver",
     GOLD = "gold"
 
 
 class StorageConfiguration(ABC):
-    """Base class for a class that provides configuration for persistent storage."""
+    """Base class for a class that provides configuration for persistent storage.
+
+    Attributes:
+        storage_options (dict): Provider-specific storage options to use when reading or writing data.
+    """
     def __init__(self, storage_options: dict):
-        """Initializes a new instance of the StorageConfiguration class.
+        """Constructor method
 
         Args:
-            storage_options (dict): Provider-specific storage options to use when reading or writing data."""
+            storage_options (dict): Provider-specific storage options to use when reading or writing data.
+        """
         self.storage_options = storage_options
 
     @abstractmethod
@@ -29,5 +34,9 @@ class StorageConfiguration(ABC):
 
         Args:
             layer (DataLakeLayer): The layer in the data lake that contains the file.
-            path (str): The relative path to the file. This should not have a leading separator"""
+            path (str): The relative path to the file. This should not have a leading separator.
+
+        Returns:
+            str: The full path to the file in storage.
+        """
         pass
