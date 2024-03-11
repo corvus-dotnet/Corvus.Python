@@ -23,7 +23,7 @@ def get_az_cli_token(resource: str, tenant_id: str = None) -> str:
         raise RuntimeError("Please login to the Azure CLI using `az login --tenant <tenant> --use-device-code` "
                            "to authenticate.")
     except ClientAuthenticationError:
-        raise RuntimeError("It is likely that you're logged into the wrong tenant. "
+        raise RuntimeError("It is likely that you're logged into the wrong tenant, or your login is stale. "
                            "Please login to the Azure CLI using `az login --tenant <tenant> --use-device-code` "
                            "to authenticate.")
 

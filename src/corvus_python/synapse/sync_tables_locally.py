@@ -4,10 +4,9 @@ from dataclasses import dataclass
 from typing import List, Tuple
 import pyodbc
 import struct
-import os
+from pyspark.sql import SparkSession
 
-from corvus_python.pyspark.storage import LocalFileSystemStorageConfiguration
-from corvus_python.pyspark.utilities import create_spark_session
+from corvus_python.pyspark.utilities import LocalSparkSessionConfig, get_or_create_spark_session
 from corvus_python.auth import get_az_cli_token
 
 
@@ -85,23 +84,19 @@ def _get_jdbc_connection_properties(workspace_name: str) -> Tuple[str, dict]:
 def sync_synapse_tables_to_local_spark(
         workspace_name: str,
         object_sync_details: List[ObjectSyncDetails],
-        local_fs_base_path: str = os.path.join(os.getcwd(), "data"),
-        overwrite: bool = False
+        overwrite: bool = False,
+        spark: SparkSession = get_or_create_spark_session(LocalSparkSessionConfig("sync_synapse_tables_to_local_spark"))
         ):
     """Syncs tables from a Synapse workspace to a local Spark metastore.
 
     Args:
         workspace_name (str): Name of the Synapse workspace.
         table_infos (List[ObjectSyncDetails]): List of ObjectSyncDetails containing info about the tables to sync.
-        local_fs_base_path (str, optional): Base path for the local file system.
-            Defaults to os.path.join(os.getcwd(), "data").
         overwrite (bool, optional): Whether to overwrite the tables if they already exist in the local metastore.
             Defaults to False, to avoid unnecessary pulling of data from Synapse (and therefore egress charges).
+        spark (SparkSession, optional): The Spark session to use. Defaults to a new local Spark session with default
+            values for metastore location and warehouse directory.
     """
-
-    file_system_configuration = LocalFileSystemStorageConfiguration(local_fs_base_path)
-    spark = create_spark_session("table_syncer", file_system_configuration)
-
     jdbc_url, connection_properties = _get_jdbc_connection_properties(workspace_name)
 
     for osd in object_sync_details:
@@ -112,7 +107,7 @@ def sync_synapse_tables_to_local_spark(
 
             if table_exists and not overwrite:
                 print('\033[93m' + f"Table '{table}' in database '{osd.database_name}' already exists and\
-                       overwrite is set to False. Skipping table sync." + '\033[0m')
+overwrite is set to False. Skipping table sync." + '\033[0m')
                 continue
             else:
                 spark.read.jdbc(

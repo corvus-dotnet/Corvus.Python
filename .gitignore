@@ -295,6 +295,7 @@ spark-warehouse/
 local*.*
 !local-submit-batch-job.ps1.template
 !local_spark_utils.py
+!local_spark_session.py
 !local_file_system_storage_configuration.py
 !local_cred_utils.py
 test-reports/
