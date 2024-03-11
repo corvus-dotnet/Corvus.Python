@@ -67,6 +67,29 @@ By default, a file in the root of the current working directory with file name `
 | <code>sync_synapse_tables_to_local_spark</code> | Function    | Reads tables from a Synapse SQL Serverless endpoint and clones to a local Hive metastore. Useful for local development, to avoid continuously sending data over the wire. | <code>from corvus_python.synapse import sync_synapse_tables_to_local_spark</code> |
 | <code>ObjectSyncDetails</code>                  | Class       | Dataclass representing a database and corresponding tables to be synced using the <code>sync_synapse_tables_to_local_spark</code> function.                               | <code>from corvus_python.synapse import ObjectSyncDetails</code>                  |
 
+#### `sync_synapse_tables_to_local_spark()`
+
+Here is an example code snippet to utilize this function:
+
+```python
+from corvus_python.synapse import sync_synapse_tables_to_local_spark
+
+sync_synapse_tables_to_local_spark(
+    workspace_name='my_workspace_name',
+    object_sync_details=[
+        ObjectSyncDetails(
+            database_name='database_1',
+            tables=['table_1', 'table_2']
+        ),
+        ObjectSyncDetails(
+            database_name='database_2',
+            tables=['table_1', 'table_2']
+        )
+    ],
+    # overwrite = True,  # Uncomment if local clones already exist and you wish to overwrite.
+    # spark = spark,     # Uncomment if you wish to provide your own Spark Session (assumed stored within "spark" variable).
+)
+```
 
 ---
 
