@@ -12,11 +12,11 @@ CWD = os.path.join(os.getcwd())
 
 @dataclass
 class LocalSparkSessionConfig():
-    """Class to represent configuration of a Local Spark setup.
+    """Class to represent configuration of a Local Spark Session.
 
-    Args:
+    Attributes:
         workload_name (str): The name of the workload. This will be used as the name of the Spark application.
-        file_system_configuration (StorageConfiguration, optional): The storage configuration to use for the Spark
+        storage_configuration (StorageConfiguration, optional): The storage configuration to use for the Spark
             session. Defaults to a LocalFileSystemStorageConfiguration with the data directory set to the current
             working directory.
         warehouse_dir (str, optional): The directory in which to provision the default Spark SQL Warehouse. Defaults to
@@ -32,7 +32,7 @@ class LocalSparkSessionConfig():
             Azure CLI credentials.
     """
     workload_name: str
-    file_system_configuration: StorageConfiguration = LocalFileSystemStorageConfiguration(os.path.join(CWD, "data"))
+    storage_configuration: StorageConfiguration = LocalFileSystemStorageConfiguration(os.path.join(CWD, "data"))
     warehouse_dir: str = os.path.join(CWD, "warehouse")
     enable_hive_support: bool = True
     hive_metastore_dir: str = os.path.join(CWD, "metastore")
@@ -42,6 +42,10 @@ class LocalSparkSessionConfig():
 
 @dataclass
 class LocalSparkSession():
+    """Class to represent a Local Spark session.
+    Attributes:
+        config (LocalSparkSessionConfig): The configuration for the local Spark session.
+    """
     config: LocalSparkSessionConfig
 
     def create_spark_session(self) -> SparkSession:
