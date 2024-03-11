@@ -2,7 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.166.1/containers/python-3
 {
 	"name": "Python 3",
-	"image": "endjin.azurecr.io/mdp/spark-sandbox:2.0.0",
+	"image": "endjin.azurecr.io/mdp/spark-sandbox:2.0.2",
 
 	"customizations": {
 		"vscode": {
@@ -55,7 +55,9 @@
 				"jimasp.behave-vsc@0.6.4",
 				"alexkrechik.cucumberautocomplete",
 				"ms-python.flake8",
-				"GitHub.vscode-github-actions"
+				"GitHub.vscode-github-actions",
+				"GitHub.copilot",
+				"GitHub.copilot-chat"
 			]
 		}
 	},
