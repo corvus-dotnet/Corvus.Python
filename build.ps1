@@ -73,7 +73,7 @@ param (
     [string] $BuildModulePath,
 
     [Parameter()]
-    [version] $BuildModuleVersion = "1.5.4",
+    [version] $BuildModuleVersion = "1.5.5",
 
     [Parameter()]
     [string] $BuildModulePackageVersion = $BuildModuleVersion,
