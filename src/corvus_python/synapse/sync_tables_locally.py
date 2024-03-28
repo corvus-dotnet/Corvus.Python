@@ -85,7 +85,7 @@ def sync_synapse_tables_to_local_spark(
         workspace_name: str,
         object_sync_details: List[ObjectSyncDetails],
         overwrite: bool = False,
-        spark: SparkSession = get_or_create_spark_session(LocalSparkSessionConfig("sync_synapse_tables_to_local_spark"))
+        spark: SparkSession = None
         ):
     """Syncs tables from a Synapse workspace to a local Spark metastore.
 
@@ -97,6 +97,11 @@ def sync_synapse_tables_to_local_spark(
         spark (SparkSession, optional): The Spark session to use. Defaults to a new local Spark session with default
             values for metastore location and warehouse directory.
     """
+    existing_spark_session = spark
+
+    if not existing_spark_session:
+        spark = get_or_create_spark_session(LocalSparkSessionConfig("sync_synapse_tables_to_local_spark"))
+
     jdbc_url, connection_properties = _get_jdbc_connection_properties(workspace_name)
 
     for osd in object_sync_details:
@@ -106,7 +111,7 @@ def sync_synapse_tables_to_local_spark(
             table_exists = spark.catalog.tableExists(table, osd.database_name)
 
             if table_exists and not overwrite:
-                print('\033[93m' + f"Table '{table}' in database '{osd.database_name}' already exists and\
+                print('\033[93m' + f"Table '{table}' in database '{osd.database_name}' already exists and \
 overwrite is set to False. Skipping table sync." + '\033[0m')
                 continue
             else:
@@ -121,4 +126,5 @@ overwrite is set to False. Skipping table sync." + '\033[0m')
                     .mode("overwrite") \
                     .saveAsTable(f"{osd.database_name}.{table}")
 
-    spark.stop()
+    if not existing_spark_session:
+        spark.stop()

@@ -65,7 +65,12 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		4040		// make Spark UI available via http://localhost:4040
+		// Make handful of Spark UI ports (one per app) available via http://localhost:<port>
+		4040,
+		4041,
+		4042,
+		4043,
+		4044
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
