@@ -9,19 +9,20 @@ from docx.shared import Mm
 class WordDocumentGenerator:
     """A class for generating Word documents from templates."""
 
-    def render_doc_as_bytes(self, template: DocxTemplate, context: Dict[str, any]) -> bytes:
+    def render_doc_as_bytes(self, template: DocxTemplate, context: Dict[str, any], autoescape: bool = False) -> bytes:
         """Render a Word docx document from the provided template and context,
         and return the result as a byte array.
 
         Args:
             template (DocxTemplate): The template to render. Use `get_template` to get the template object.
             context (Dict[str, any]): The context to render the template with.
+            autoescape (bool, optional): Whether to autoescape characters when rendering. Defaults to False.
 
         Returns:
             bytes: The rendered document as a byte array.
         """
 
-        template.render(context)
+        template.render(context, autoescape=autoescape)
 
         try:
             # save to byte array
