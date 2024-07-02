@@ -57,7 +57,8 @@
 				"ms-python.flake8",
 				"GitHub.vscode-github-actions",
 				"GitHub.copilot",
-				"GitHub.copilot-chat"
+				"GitHub.copilot-chat",
+				"GitHub.vscode-pull-request-github"
 			]
 		}
 	},
