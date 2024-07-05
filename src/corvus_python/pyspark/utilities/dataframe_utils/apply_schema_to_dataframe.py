@@ -21,15 +21,15 @@ def _generate_select_expression(schema: StructType, parent_field_name: str = Non
             if parent_field_name:
                 select_expr = f"{parent_field_name}.{select_expr}"
             else:
-                select_expr + f"{field.metadata.get('source_col', field.name)} as {field.name}")
+                select_expr + f"{field.metadata.get('source_col', field.name)} as {field.name}"
             select_expressions.append(select_expr)
 
     return 
 
-def apply_schema_to_dataframe(sprak: SparkSession, df: DataFrame, schema: StructType):
-    select_expr = _generate_select_expression(schema)
+# def apply_schema_to_dataframe(sprak: SparkSession, df: DataFrame, schema: StructType):
+#     select_expr = _generate_select_expression(schema)
 
-    rdd = df.rdd
-    return spark.createDataFrame(rdd, schema)
+#     rdd = df.rdd
+#     return spark.createDataFrame(rdd, schema)
 
 
