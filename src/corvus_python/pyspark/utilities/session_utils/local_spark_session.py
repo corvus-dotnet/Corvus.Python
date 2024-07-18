@@ -1,6 +1,6 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pyspark.sql import SparkSession
 from delta import configure_spark_with_delta_pip
 import os
@@ -41,6 +41,7 @@ class LocalSparkSessionConfig():
     install_hadoop_azure_package: bool = False
     enable_az_cli_auth: bool = False
     enable_spark_ui: bool = True
+    extra_packages: list = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -72,7 +73,7 @@ class LocalSparkSession():
                 "true" if self.config.enable_spark_ui else "false")
         )
 
-        extra_packages = []
+        extra_packages = self.config.extra_packages
 
         builder = builder.config("spark.sql.warehouse.dir", self.config.warehouse_dir)
         extra_packages.append("com.microsoft.sqlserver:mssql-jdbc:12.6.0.jre11")
