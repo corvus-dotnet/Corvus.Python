@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import List
 
 
 class DataLakeLayer(str, Enum):
@@ -38,5 +39,18 @@ class StorageConfiguration(ABC):
 
         Returns:
             str: The full path to the file in storage.
+        """
+        pass
+
+    @abstractmethod
+    def list_files(self, layer: DataLakeLayer, path: str) -> List[str]:
+        """Lists all file names in the specified path within the given data lake layer.
+
+        Args:
+            layer (DataLakeLayer): The layer in the data lake that contains the files.
+            path (str): The relative path to the directory. This should not have a leading separator.
+
+        Returns:
+            List[str]: A list of file names in the specified path.
         """
         pass

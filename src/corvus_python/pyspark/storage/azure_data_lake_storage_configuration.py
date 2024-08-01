@@ -1,6 +1,8 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
 from .storage_configuration import DataLakeLayer, StorageConfiguration
+from utilities import get_spark_utils
+from typing import List
 
 
 class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
@@ -26,6 +28,12 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
 
     def get_full_path(self, layer: DataLakeLayer, path: str):
         return f"abfss://{layer}@{self.storage_account_name}.dfs.core.windows.net/{path}"
+    
+    def list_files(self, layer: DataLakeLayer, path: str) -> List[str]:
+        spark_utils = get_spark_utils()
+        return spark_utils.fs.ls(self.get_full_path(layer, path))
+        
+
 
 
 class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):

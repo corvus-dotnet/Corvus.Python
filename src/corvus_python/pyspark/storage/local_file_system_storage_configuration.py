@@ -21,3 +21,6 @@ class LocalFileSystemStorageConfiguration(StorageConfiguration):
 
     def get_full_path(self, layer: DataLakeLayer, path: str):
         return f"{self.base_path}/{layer}/{path}"
+    
+    def list_files(self, layer: DataLakeLayer, path: str):
+        return os.listdir(f"{self.base_path}/{layer}/{path}")
