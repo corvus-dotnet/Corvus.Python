@@ -31,7 +31,8 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
     
     def list_files(self, layer: DataLakeLayer, path: str) -> List[str]:
         spark_utils = get_spark_utils()
-        return spark_utils.fs.ls(self.get_full_path(layer, path))
+        files = spark_utils.fs.ls(self.get_full_path(layer, path))
+        return [file.name for file in files]
         
 
 
