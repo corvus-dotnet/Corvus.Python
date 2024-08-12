@@ -1,6 +1,6 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pyspark.sql import SparkSession
 from delta import configure_spark_with_delta_pip
 import os
@@ -30,6 +30,8 @@ class LocalSparkSessionConfig():
         enable_az_cli_auth (bool, optional): Whether to enable Azure CLI authentication. Defaults to False. If using
             Azure Data Lake Storage Gen 2, this should be set to True to enable authentication using your current
             Azure CLI credentials.
+        enable_spark_ui (bool, optional): Whether to enable the Spark UI. Defaults to True. It can be useful to turn
+            the UI off for unit tests to avoid port binding issues.
     """
     workload_name: str
     storage_configuration: StorageConfiguration = LocalFileSystemStorageConfiguration(os.path.join(CWD, "data"))
@@ -38,6 +40,8 @@ class LocalSparkSessionConfig():
     hive_metastore_dir: str = os.path.join(CWD, "metastore")
     install_hadoop_azure_package: bool = False
     enable_az_cli_auth: bool = False
+    enable_spark_ui: bool = True
+    extra_packages: list = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -64,9 +68,12 @@ class LocalSparkSession():
             .config(
                 "spark.sql.catalog.spark_catalog",
                 "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+            .config(
+                "spark.ui.enabled",
+                "true" if self.config.enable_spark_ui else "false")
         )
 
-        extra_packages = []
+        extra_packages = self.config.extra_packages
 
         builder = builder.config("spark.sql.warehouse.dir", self.config.warehouse_dir)
         extra_packages.append("com.microsoft.sqlserver:mssql-jdbc:12.6.0.jre11")

@@ -70,7 +70,7 @@ def i_generate_a_word_document_named(context, output_file):
     context.output_file = os.path.join(dirname, "../word_document_generator/output", output_file)
 
     # generate word document
-    result = generator.render_doc_as_bytes(context.template, context.template_context)
+    result = generator.render_doc_as_bytes(context.template, context.template_context, autoescape=True)
 
     # save to file
     with open(context.output_file, 'wb') as f:
