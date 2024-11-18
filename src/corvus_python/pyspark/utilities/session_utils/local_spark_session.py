@@ -32,6 +32,7 @@ class LocalSparkSessionConfig():
             Azure CLI credentials.
         enable_spark_ui (bool, optional): Whether to enable the Spark UI. Defaults to True. It can be useful to turn
             the UI off for unit tests to avoid port binding issues.
+        additional_spark_config (dict, optional): Additional Spark configuration to set. Defaults to an empty dict.
     """
     workload_name: str
     storage_configuration: StorageConfiguration = LocalFileSystemStorageConfiguration(os.path.join(CWD, "data"))
@@ -42,6 +43,7 @@ class LocalSparkSessionConfig():
     enable_az_cli_auth: bool = False
     enable_spark_ui: bool = True
     extra_packages: list = field(default_factory=lambda: [])
+    additional_spark_config: dict = field(default_factory=lambda: {})
 
 
 @dataclass
@@ -99,6 +101,10 @@ class LocalSparkSession():
                 ) \
                 .config("spark.driver.extraJavaOptions", f"-Dderby.system.home={hive_metastore_dir}") \
                 .enableHiveSupport()
+
+        if self.config.additional_spark_config:
+            for k, v in self.config.additional_spark_config.items():
+                builder = builder.config(k, v)
 
         spark = configure_spark_with_delta_pip(builder, extra_packages=extra_packages).getOrCreate()
 
