@@ -73,7 +73,7 @@ By default, a file in the root of the current working directory with file name `
 Here is an example code snippet to utilize this function:
 
 ```python
-from corvus_python.synapse import sync_synapse_tables_to_local_spark
+from corvus_python.synapse import sync_synapse_tables_to_local_spark, ObjectSyncDetails
 
 sync_synapse_tables_to_local_spark(
     workspace_name='my_workspace_name',
