@@ -30,7 +30,7 @@ def test_retrieve_image_as_base64_success():
             "example.sharepoint.com", "site_name", "library_name", {
                 "Accept": "application/json",
                 "Content-Type": "application/json; charset=utf-8",
-                "Authorization": "Bearer fake_token"
+                "Authorization": f"Bearer {token}"
             })
         assert result == expected_base64_image
 
@@ -436,10 +436,11 @@ def test_get_drive_id_success():
     sharepoint_tenant_fqdn = "example.sharepoint.com"
     sharepoint_site_name = "site_name"
     library_name = "library_name"
+    token = "fake_token"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json; charset=utf-8",
-        "Authorization": "Bearer fake_token"
+        "Authorization": f"Bearer {token}"
     }
     mock_drive_id = "fake_drive_id"
     mock_web_url = f"https://{sharepoint_tenant_fqdn}/sites/{sharepoint_site_name}/{library_name}"
