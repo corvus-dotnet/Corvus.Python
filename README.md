@@ -102,3 +102,11 @@ Includes utility functions when working with authentication libraries within Pyt
 |-------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 | <code>get_az_cli_token</code> | Function    | Gets an Entra ID token from the Azure CLI for a specified resource (/audience) and tenant. Useful for local development. | <code>from corvus_python.auth import get_az_cli_token</code> |
 |                               |             |                                                                                                                          |                                                              |
+
+### SharePoint
+
+Includes utility functions when working with SharePoint REST API. Primary API interfaces:
+
+| Component Name                        | Object Type | Description                                                                                           | Import syntax                                                |
+|---------------------------------------|-------------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| <code>SharePointUtilities</code>      | Class       | A utility class for interacting with SharePoint REST API.                                             | <code>from corvus_python.sharepoint import SharePointUtilities</code> |
