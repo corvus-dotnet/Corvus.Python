@@ -29,6 +29,9 @@ To use these decorators and methods, you must configure Open Telemetry correctly
 2. Use the `configure_azure_monitor` function to set up Open Telemetry:
 
 ```python
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry.sdk.resources import Resource
+
 configure_azure_monitor(
     connection_string="[Your connection string here]",
     resource=Resource.create({
