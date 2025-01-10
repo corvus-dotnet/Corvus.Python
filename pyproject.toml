@@ -14,6 +14,7 @@ azure-identity = "^1.15.0"
 docxtpl = "^0.16.7"
 pyodbc = "^5.1.0"
 dummy-notebookutils = "^1.5.1"
+opentelemetry-api = "^1.29.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "~1.0.0"
