@@ -46,6 +46,28 @@ def all_methods_start_new_current_span_with_method_name(tracer: trace.Tracer):
     return decorate
 
 
+def add_attributes_to_span(span: trace.Span, **kwargs: dict[str, any]):
+    """
+        Adds the specified key-value pairs to the specified span as attributes.
+
+        Args:
+            **kwargs: The key-value pairs to add to the span as attributes.
+    """
+    if span is not None:
+        kwargs_as_strings = {k: str(v) for k, v in kwargs.items()}
+        span.set_attributes(kwargs_as_strings)
+
+
+def add_attributes_to_current_span(**kwargs: dict[str, any]):
+    """
+        Adds the specified key-value pairs to the current span as attributes.
+
+        Args:
+            **kwargs: The key-value pairs to add to the span as attributes.
+    """
+    add_attributes_to_span(trace.get_current_span(), **kwargs)
+
+
 def add_kwargs_to_span(span: trace.Span, keys: list[str], source_kwargs: dict[str, any]):
     """
         Adds the specified keys from the source_kwargs dictionary to the span as attributes.
@@ -57,9 +79,8 @@ def add_kwargs_to_span(span: trace.Span, keys: list[str], source_kwargs: dict[st
             source_kwargs (dict[str, any]): The dictionary to get the values from. This is typically the kwargs
             dictionary of the method being traced.
     """
-    for key in keys:
-        if key in source_kwargs:
-            span.set_attribute(key, str(source_kwargs[key]))
+    kwargs_to_add = {key: source_kwargs[key] for key in keys if key in source_kwargs}
+    add_attributes_to_span(span, **kwargs_to_add)
 
 
 def add_kwargs_to_current_span(keys: list[str], source_kwargs: dict[str, any]):
