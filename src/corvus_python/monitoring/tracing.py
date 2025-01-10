@@ -50,6 +50,11 @@ def add_attributes_to_span(span: trace.Span, **kwargs: dict[str, any]):
     """
         Adds the specified key-value pairs to the specified span as attributes.
 
+        For example, calling:
+            add_attributes_to_span(span, key1="value1", key2="value2")
+        is equivalent to calling:
+            span.set_attributes({"key1": "value1", "key2": "value2"})
+
         Args:
             **kwargs: The key-value pairs to add to the span as attributes.
     """
