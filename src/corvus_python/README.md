@@ -66,9 +66,9 @@ When code is executed from a Synapse notebook, it's likely that it will be being
 
 The supplied decorators create spans of kind `SpanKind.INTERNAL` - the default. This is intended to indicate that the span represents an internal operation within an application, as opposed to an operations with remote parents or children. This will result in a trace of type `DEPENDENCY` in App Insights (also referred to as `InProc`).
 
-Consider wrapping calls to your package with a manually created span of kind `SpanKind.REQUEST`. This will result in a trace of type `REQUEST` in App Insights, and will make it easier to locate invocations of your package by searching for spans of type `REQUEST` using your correlation Id.
+Consider wrapping calls to your package with a manually created span of kind `SpanKind.SERVER`. This will result in a trace of type `REQUEST` in App Insights, and will make it easier to locate invocations of your package by searching for traces of type `REQUEST` using your correlation Id.
 
-If your package has a small number of entrypoints, you can create the Request span inside your package. Alternatively, you can create the Request span in the notebook which uses your package. The code looks like this:
+If your package has a small number of entrypoints, you can create the `SpanKind.SERVER` span inside your package. Alternatively, you can create it in the notebook which uses your package. The code looks like this:
 
 ```python
 from opentelemetry import trace
