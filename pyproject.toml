@@ -7,9 +7,9 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "~3.10"
-pyspark = "~3.3.1"
-delta-spark = "~2.2.0"
+python = "^3.10"
+pyspark = "^3.3.1"
+delta-spark = "^2.2.0"
 azure-identity = "^1.15.0"
 docxtpl = "^0.16.7"
 pyodbc = "^5.1.0"
