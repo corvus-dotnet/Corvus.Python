@@ -25,6 +25,7 @@ pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
 behave = "^1.2.6"
 junitparser = "^3.1.1"
+dummy-notebookutils = "^1.5.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
