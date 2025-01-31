@@ -2,21 +2,6 @@
 
 This provides a library of Python utility functions and classes, generally in the data and analytics space. Many components have been designed to help streamline local development of cloud-based solutions.
 
-## Important notes
-
-### Dev dependency on `dummy-notebookutils`
-
-`corvus_python` includes a `pyspark.utilities` module that mocks out the [Synapse `mssparkutils`](https://learn.microsoft.com/en-us/azure/synapse-analytics/spark/microsoft-spark-utilities?pivots=programming-language-python) library. Since this library is only available in Synapse, we use the [`dummy-notebookutils`](https://pypi.org/project/dummy-notebookutils/) project (which mirrors the `mssparkutils` API) for linting and build purposes locally.
-
-Therefore, any package depending on `corvus_python.pyspark.utilities` should install `dummy-notebookutils` as a local dev dependency to avoid `ModuleNotFoundError` issues. If using poetry, that would be by adding `dummy-notebookutils` to the dev dependencies group, e.g.:
-
-```
-[tool.poetry.group.dev.dependencies]
-...
-dummy-notebookutils = "^1.5.1"
-...
-```
-
 ## Sub-modules
 
 ### `pyspark`
