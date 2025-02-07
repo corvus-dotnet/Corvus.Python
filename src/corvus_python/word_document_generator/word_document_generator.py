@@ -4,8 +4,13 @@ from os import PathLike
 from typing import IO, Dict
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
+from ..monitoring.tracing import all_methods_start_new_current_span_with_method_name
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
 
 
+@all_methods_start_new_current_span_with_method_name(tracer)
 class WordDocumentGenerator:
     """A class for generating Word documents from templates."""
 
