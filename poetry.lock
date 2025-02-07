@@ -1988,7 +1988,10 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.21.0", markers = "python_version >= \"3.10\""}
+numpy = [
+    {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
+    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
+]
 python-dateutil = ">=2.8.1"
 pytz = ">=2020.1"
 
@@ -3240,5 +3243,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "~3.10"
-content-hash = "8faf09facd975d4a85935e7e4c718a09f293772f275afe52f803b520f6d58621"
+python-versions = "^3.10"
+content-hash = "c2324ce011dca850da8f947632b217e0d53ee0027fe7dd4496d01fb5054f439c"
