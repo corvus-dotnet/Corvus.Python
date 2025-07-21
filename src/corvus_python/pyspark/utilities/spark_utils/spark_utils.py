@@ -2,7 +2,6 @@
 
 import os
 import json
-from notebookutils import mssparkutils
 from .local_spark_utils import LocalSparkUtils
 
 
@@ -20,6 +19,7 @@ def get_spark_utils(local_spark_utils_config_file_path: str = f"{os.getcwd()}/lo
         FileNotFoundError: If the local-spark-utils-config.json file is not found at the specified path.
     """
     if os.environ.get("MMLSPARK_PLATFORM_INFO") == "synapse":
+        from notebookutils import mssparkutils
         return mssparkutils
     else:
         try:

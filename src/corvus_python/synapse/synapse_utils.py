@@ -3,7 +3,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 import time
 
-from corvus_python.pyspark.utilities.spark_utils.spark_utils import get_spark_utils
+from corvus_python.pyspark.utilities import get_spark_utils
 
 
 class SynapsePipelineError(Exception):
