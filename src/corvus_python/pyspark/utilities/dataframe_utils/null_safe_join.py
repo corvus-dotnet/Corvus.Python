@@ -1,8 +1,12 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
 from typing import List
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import broadcast, expr
+try:
+    from pyspark.sql import DataFrame
+    from pyspark.sql.functions import broadcast, expr
+except ImportError as exc:
+    raise ImportError("PySpark is required for null_safe_join functionality. "
+                      "Install using corvus-python[pyspark]") from exc
 
 
 def null_safe_join(
