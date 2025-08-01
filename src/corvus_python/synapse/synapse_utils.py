@@ -3,8 +3,6 @@ import urllib.parse
 from datetime import datetime, timedelta
 import time
 
-from corvus_python.pyspark.utilities import get_spark_utils
-
 
 class SynapsePipelineError(Exception):
     """
@@ -39,9 +37,9 @@ class SynapseUtilities:
     retrieving workspace information, and fetching linked services.
     """
 
-    def __init__(self):
-        self.spark_utils = get_spark_utils()
-        self.WORKSPACE_ENDPOINT = f"https://{self.spark_utils.env.getWorkspaceName()}.dev.azuresynapse.net"
+    def __init__(self, workspace_name: str, access_token: str):
+        self.workspace_endpoint = f"https://{workspace_name}.dev.azuresynapse.net"
+        self.access_token = access_token
 
     def create_pipeline_run(
         self,
@@ -59,14 +57,12 @@ class SynapseUtilities:
             str: The ID of the created pipeline run.
         """
 
-        access_token = self.spark_utils.credentials.getToken('Synapse')
-
         url = (
-            f'{self.WORKSPACE_ENDPOINT}/pipelines/'
+            f'{self.workspace_endpoint}/pipelines/'
             f'{urllib.parse.quote(pipeline_name)}/createRun?api-version=2020-12-01'
         )
 
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {'Authorization': f'Bearer {self.access_token}'}
 
         response = requests.post(url, json=pipeline_parameters, headers=headers)
 
@@ -91,11 +87,9 @@ class SynapseUtilities:
             str: The final status of the pipeline run.
         """
 
-        access_token = self.spark_utils.credentials.getToken('Synapse')
+        url = f'{self.workspace_endpoint}/pipelineruns/{run_id}?api-version=2020-12-01'
 
-        url = f'{self.WORKSPACE_ENDPOINT}/pipelineruns/{run_id}?api-version=2020-12-01'
-
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {'Authorization': f'Bearer {self.access_token}'}
 
         completed = False
         status = None
@@ -152,11 +146,9 @@ class SynapseUtilities:
         Returns:
             str: The resource ID of the workspace.
         """
-        access_token = self.spark_utils.credentials.getToken('Synapse')
+        url = f'{self.workspace_endpoint}/workspace?api-version=2020-12-01'
 
-        url = f'{self.WORKSPACE_ENDPOINT}/workspace?api-version=2020-12-01'
-
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {'Authorization': f'Bearer {self.access_token}'}
 
         response = requests.get(url, headers=headers)
 
@@ -174,11 +166,9 @@ class SynapseUtilities:
         Returns:
             str: The JSON representation of the linked service.
         """
-        access_token = self.spark_utils.credentials.getToken('Synapse')
+        url = f'{self.workspace_endpoint}/linkedservices/{linked_service_name}?api-version=2020-12-01'
 
-        url = f'{self.WORKSPACE_ENDPOINT}/linkedservices/{linked_service_name}?api-version=2020-12-01'
-
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {'Authorization': f'Bearer {self.access_token}'}
 
         response = requests.get(url, headers=headers)
 
