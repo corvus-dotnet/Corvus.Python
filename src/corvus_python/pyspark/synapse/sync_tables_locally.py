@@ -9,6 +9,7 @@ from pyspark.sql import SparkSession
 from corvus_python.pyspark.utilities import LocalSparkSessionConfig, get_or_create_spark_session
 from corvus_python.auth import get_az_cli_token
 
+
 @dataclass
 class ObjectSyncDetails:
     """Holds information about objects to sync from a Synapse workspace.
