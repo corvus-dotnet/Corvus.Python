@@ -26,7 +26,6 @@ $SkipPackage = $false
 $PythonProjectManager = 'poetry'
 $PythonProjectDir = $here
 $PythonSourceDirectory = 'src'
-# $PythonPackageRepositoryUrl = "https://pkgs.dev.azure.com/ioccpvs/EDAP/_packaging/EDAP_feed/pypi/upload/"
 $UseAzCliAuthForAzureArtifacts = $true
 
 # Customise the build process
