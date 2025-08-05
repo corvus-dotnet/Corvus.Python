@@ -1,23 +1,16 @@
-"""Copyright (c) Endjin Limited. All rights reserved."""
+"""
+Deprecated: This module has been moved to corvus_python.storage.local_file_system_storage_configuration.
 
-import os
-from .storage_configuration import DataLakeLayer, StorageConfiguration
+This module provides backward compatibility for imports that were previously
+available at corvus_python.pyspark.storage.local_file_system_storage_configuration.
+"""
 
+import warnings
+from corvus_python.storage.local_file_system_storage_configuration import *  # noqa F401, F403
 
-class LocalFileSystemStorageConfiguration(StorageConfiguration):
-    """Implementation of StorageConfiguration that uses the local file system.
-
-    Attributes:
-        base_path (str): The base path to use for the local file system. This should not have a trailing separator.
-    """
-    def __init__(self, base_path: str):
-        """Constructor method
-
-        Args:
-            base_path (str): The base path to use for the local file system. This should not have a trailing separator.
-        """
-        super().__init__(None)
-        self.base_path = os.path.abspath(base_path)
-
-    def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
-        return f"{self.base_path}/{layer}/{path}"
+warnings.warn(
+    "corvus_python.pyspark.storage.local_file_system_storage_configuration is deprecated. "
+    "Import from corvus_python.storage.local_file_system_storage_configuration instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)

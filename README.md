@@ -4,7 +4,9 @@ This provides a library of Python utility functions and classes, generally in th
 
 ## Sub-modules
 
-### `pyspark`
+### `pyspark.utilities`
+
+**⚠️ Note: This module requires the 'pyspark' extra to be installed: `corvus-python[pyspark]`**
 
 Includes utility functions when working with PySpark to build data processing solutions. Primary API interfaces:
 
@@ -60,20 +62,21 @@ By default, a file in the root of the current working directory with file name `
 
 ---
 
-### Synapse
+### `pyspark.synapse`
+
+**⚠️ Note: This module requires the 'pyspark' extra to be installed: `corvus-python[pyspark]`**
 
 | Component Name                                  | Object Type | Description                                                                                                                                                               | Import syntax                                                                     |
 |-------------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| <code>sync_synapse_tables_to_local_spark</code> | Function    | Reads tables from a Synapse SQL Serverless endpoint and clones to a local Hive metastore. Useful for local development, to avoid continuously sending data over the wire. | <code>from corvus_python.synapse import sync_synapse_tables_to_local_spark</code> |
-| <code>ObjectSyncDetails</code>                  | Class       | Dataclass representing a database and corresponding tables to be synced using the <code>sync_synapse_tables_to_local_spark</code> function.                               | <code>from corvus_python.synapse import ObjectSyncDetails</code>                  |
-| <code>SynapseUtilities</code> | Class | A utility class for interacting with Azure Synapse Analytics. | <code>from corvus_python.synapse import SynapseUtilities | 
+| <code>sync_synapse_tables_to_local_spark</code> | Function    | Reads tables from a Synapse SQL Serverless endpoint and clones to a local Hive metastore. Useful for local development, to avoid continuously sending data over the wire. | <code>from corvus_python.pyspark.synapse import sync_synapse_tables_to_local_spark</code> |
+| <code>ObjectSyncDetails</code>                  | Class       | Dataclass representing a database and corresponding tables to be synced using the <code>sync_synapse_tables_to_local_spark</code> function.                               | <code>from corvus_python.pyspark.synapse import ObjectSyncDetails</code>                  |
 
 #### `sync_synapse_tables_to_local_spark()`
 
 Here is an example code snippet to utilize this function:
 
 ```python
-from corvus_python.synapse import sync_synapse_tables_to_local_spark
+from corvus_python.pyspark.synapse import sync_synapse_tables_to_local_spark, ObjectSyncDetails
 
 sync_synapse_tables_to_local_spark(
     workspace_name='my_workspace_name',
@@ -91,6 +94,16 @@ sync_synapse_tables_to_local_spark(
     # spark = spark,     # Uncomment if you wish to provide your own Spark Session (assumed stored within "spark" variable).
 )
 ```
+
+---
+
+### `synapse`
+
+Includes utility functions when working with Synapse Analytics. Primary API interfaces:
+
+| Component Name                | Object Type | Description                                                                                                              | Import syntax                                                |
+|-------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| <code>SynapseUtilities</code> | Class | A utility class for interacting with Azure Synapse Analytics. | <code>from corvus_python.synapse import SynapseUtilities</code> |
 
 ---
 

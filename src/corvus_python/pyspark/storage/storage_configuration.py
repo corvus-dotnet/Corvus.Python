@@ -1,42 +1,16 @@
-"""Copyright (c) Endjin Limited. All rights reserved."""
+"""
+Deprecated: This module has been moved to corvus_python.storage.storage_configuration.
 
-from abc import ABC, abstractmethod
-from enum import Enum
+This module provides backward compatibility for imports that were previously
+available at corvus_python.pyspark.storage.storage_configuration.
+"""
 
+import warnings
+from corvus_python.storage.storage_configuration import *  # noqa F401, F403
 
-class DataLakeLayer(str, Enum):
-    """Enumeration for the different layers in the data lake.
-    For more information on medallion architecture, see:
-    - https://www.databricks.com/glossary/medallion-architecture
-    """
-    BRONZE = "bronze",
-    SILVER = "silver",
-    GOLD = "gold"
-
-
-class StorageConfiguration(ABC):
-    """Base class for a class that provides configuration for persistent storage.
-
-    Attributes:
-        storage_options (dict): Provider-specific storage options to use when reading or writing data.
-    """
-    def __init__(self, storage_options: dict):
-        """Constructor method
-
-        Args:
-            storage_options (dict): Provider-specific storage options to use when reading or writing data.
-        """
-        self.storage_options = storage_options
-
-    @abstractmethod
-    def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
-        """Returns the full path to a file in storage.
-
-        Args:
-            layer (DataLakeLayer): The layer in the data lake that contains the file.
-            path (str): The relative path to the file. This should not have a leading separator.
-
-        Returns:
-            str: The full path to the file in storage.
-        """
-        pass
+warnings.warn(
+    "corvus_python.pyspark.storage.storage_configuration is deprecated. "
+    "Import from corvus_python.storage.storage_configuration instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
