@@ -17,8 +17,6 @@ pyodbc = "^5.1.0"
 [tool.poetry.group.dev.dependencies]
 jupyter = "~1.0.0"
 pandas = "~1.5.1"
-flake8 = "~6.1.0"
-flake8-pyproject = "^1.2.3"
 isort = "^5.13.2"
 black = "^24.4.2"
 mypy = "^1.11.1"
@@ -30,6 +28,8 @@ pytest-cov = "^3.0.0"
 behave = "v1.2.7.dev6"
 junitparser = "^3.1.1"
 dummy-notebookutils = "^1.5.1"
+flake8 = "~6.1.0"
+flake8-pyproject = "^1.2.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
