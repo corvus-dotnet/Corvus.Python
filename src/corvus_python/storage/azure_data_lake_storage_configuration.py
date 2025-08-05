@@ -24,7 +24,7 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
 
-    def get_full_path(self, layer: DataLakeLayer, path: str):
+    def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
         return f"abfss://{layer}@{self.storage_account_name}.dfs.core.windows.net/{path}"
 
 
@@ -52,5 +52,5 @@ class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):
         self.storage_account_name = storage_account_name
         self.file_system_name = file_system_name
 
-    def get_full_path(self, layer: DataLakeLayer, path: str):
+    def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
         return f"abfss://{self.file_system_name}@{self.storage_account_name}.dfs.core.windows.net/{layer}/{path}"

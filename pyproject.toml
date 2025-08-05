@@ -21,6 +21,10 @@ pyspark = ["pyspark", "delta-spark"]
 jupyter = "~1.0.0"
 pandas = "~1.5.1"
 flake8 = "~6.1.0"
+flake8-pyproject = "^1.2.3"
+isort = "^5.13.2"
+black = "^24.4.2"
+mypy = "^1.11.1"
 dummy-notebookutils = "^1.5.1"
 pyspark = "^3.3.1"
 delta-spark = "^2.2.0"
@@ -28,10 +32,31 @@ delta-spark = "^2.2.0"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
-behave = "^1.2.6"
+behave = "v1.2.7.dev6"
 junitparser = "^3.1.1"
 dummy-notebookutils = "^1.5.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+
+[tool.flake8]
+exclude = [".git", "__pycache__", "dist", ".venv"]
+max-line-length = 120
+extend-ignore = ["E203", "E701"]
+
+[tool.behave]
+paths = ["./tests/bdd"]
+
+[tool.isort]
+profile = "black"
+skip = ["__init__.py", ".git", "__pycache__", "dist", ".venv"]
+
+[tool.mypy]
+exclude = ["__init__\\.py$", '.git', '__pycache__', 'dist', '.venv']
+ignore_missing_imports = true
+disallow_untyped_defs = true
+implicit_optional = true
