@@ -6,6 +6,6 @@ except ImportError as exc:
                       "Install using corvus-python[pyspark]") from exc
 
 from .spark_utils.spark_utils import get_spark_utils
-from .session_utils.local_spark_session import LocalSparkSessionConfig
+from .session_utils.local_spark_session import LocalSparkSessionConfig, LocalSparkSession
 from .session_utils.get_or_create_spark_session import get_or_create_spark_session
 from .dataframe_utils import null_safe_join
