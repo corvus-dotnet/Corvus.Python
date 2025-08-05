@@ -19,5 +19,5 @@ class LocalFileSystemStorageConfiguration(StorageConfiguration):
         super().__init__(None)
         self.base_path = os.path.abspath(base_path)
 
-    def get_full_path(self, layer: DataLakeLayer, path: str):
+    def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
         return f"{self.base_path}/{layer}/{path}"

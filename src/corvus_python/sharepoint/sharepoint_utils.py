@@ -1,44 +1,33 @@
+from typing import Any
 import requests
 from urllib.parse import urlparse
 import base64
 from pathlib import Path
 
 
-class SharePointUtilities():
+class SharePointUtilities:
     @staticmethod
     def retrieve_image_as_base64(
-        sharepoint_url: str,
+        drive_id: str,
+        file_path: str,
         token: str,
     ) -> str:
         """Retrieves an image from SharePoint and returns it as its base64 representation.
 
         Args:
-            sharepoint_url (str): URL of the image in SharePoint.
+            drive_id (str): ID of the SharePoint drive containing the image.
+            file_path (str): Relative path to the image file within the drive.
             token (str): Bearer token for the request.
 
         Returns:
             str: base64 representation of the SharePoint image.
         """
-        if not sharepoint_url:
-            return None
-
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
-
-        parsed_url = urlparse(sharepoint_url)
-        path_segments = parsed_url.path.split('/')[1:]
-
-        sharepoint_tenant_fqdn = parsed_url.netloc
-        sharepoint_site_name = path_segments[1]
-        library_name = path_segments[2]
-        file_path = '/'.join(path_segments[3:])
         file_ext = Path(file_path).suffix
-
-        drive_id = SharePointUtilities._get_drive_id(
-            sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
 
         # Get file by relative path (/drives/{drive-id}/root:/{file_path})
         get_file_request_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{file_path}"
@@ -69,20 +58,33 @@ class SharePointUtilities():
         return base64_image
 
     @staticmethod
-    def save_file(
-        sharepoint_tenant_fqdn: str,
-        sharepoint_site_name: str,
-        library_name: str,
-        file_path: str,
-        token: str,
-        file_bytes: bytearray
-    ) -> str:
-        """Saves a file to SharePoint and returns the web URL.
+    def get_sharepoint_path_segments(sharepoint_url: str):
+        """
+        Parses a SharePoint URL and extracts the tenant FQDN, site name, and library name.
 
         Args:
-            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant to save the file to.
-            sharepoint_site_name (str): Name of the SharePoint site to save the file to.
-            library_name (str): Name of the library to save the file to (URL-encoded).
+            sharepoint_url (str): The full URL to a SharePoint resource.
+
+        Returns:
+            tuple: A tuple containing:
+                - sharepoint_tenant_fqdn (str): The fully qualified domain name of the SharePoint tenant.
+                - sharepoint_site_name (str): The name of the SharePoint site.
+                - library_name (str): The name of the document library.
+        """
+        parsed_url = urlparse(sharepoint_url)
+        path_segments = parsed_url.path.split("/")[1:]
+
+        sharepoint_tenant_fqdn = parsed_url.netloc
+        sharepoint_site_name = path_segments[1]
+        library_name = path_segments[2]
+        return sharepoint_tenant_fqdn, sharepoint_site_name, library_name
+
+    @staticmethod
+    def save_file(drive_id: str, file_path: str, token: str, file_bytes: bytearray) -> str:
+        """Saves a file to SharePoint and returns the file response as JSON.
+
+        Args:
+            drive_id (str): ID of the SharePoint drive to save the file to.
             file_path (str): Full file path (relative to root folder) to use when saving. Don't start with slash.
             token (str): Bearer token for the request.
             file_bytes (bytearray): Content of the file.
@@ -94,11 +96,8 @@ class SharePointUtilities():
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
-
-        drive_id = SharePointUtilities._get_drive_id(
-            sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
 
         # Upload file
         url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/root:/{file_path}:/content"
@@ -110,19 +109,15 @@ class SharePointUtilities():
 
     @staticmethod
     def update_sharepoint_columns(
-        sharepoint_tenant_fqdn: str,
-        sharepoint_site_name: str,
-        library_name: str,
+        drive_id: str,
         item_id: str,
-        column_updates: dict,
+        column_updates: dict[str, Any],
         token: str,
     ) -> None:
         """Updates SharePoint metadata columns associated with a file.
 
         Args:
-            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant to save the file to.
-            sharepoint_site_name (str): Name of the SharePoint site to save the file to.
-            library_name (str): Name of the library to save the file to (URL-encoded).
+            drive_id (str): ID of the SharePoint drive containing the file.
             item_id (str): Item ID of the file.
             column_updates (dict): Dictionary of updates to the SharePoint columns {"<col_name>": <new_col_value>}.
             token (str): Bearer token for the request.
@@ -131,11 +126,8 @@ class SharePointUtilities():
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
-
-        drive_id = SharePointUtilities._get_drive_id(
-            sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
 
         # Update col values
         url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{item_id}/listItem/fields"
@@ -144,34 +136,23 @@ class SharePointUtilities():
         response.raise_for_status()
 
     @staticmethod
-    def get_file_download_url(
-        sharepoint_tenant_fqdn: str,
-        sharepoint_site_name: str,
-        library_name: str,
-        file_name: str,
-        token: str
-    ) -> str:
+    def get_file_download_url(drive_id: str, file_name: str, token: str) -> str:
         """Returns the pre-authed download URL for a file in SharePoint.
 
         Args:
-            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant where the file lives.
-            sharepoint_site_name (str): Name of the SharePoint site where the file lives.
-            library_name (str): Name of the library where the file lives.
+            drive_id (str): ID of the SharePoint drive where the file lives.
             file_name (str): File name of the file.
             token (str): Bearer token for the request.
 
         Returns:
-            str: Web URL to download the file.
+            str: Pre-authenticated download URL for the file.
         """
 
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
-
-        drive_id = SharePointUtilities._get_drive_id(
-            sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
 
         # Get file download URL
         url = (
@@ -185,34 +166,23 @@ class SharePointUtilities():
         return response.json()["@microsoft.graph.downloadUrl"]
 
     @staticmethod
-    def get_download_urls_for_files_in_folder(
-        sharepoint_tenant_fqdn: str,
-        sharepoint_site_name: str,
-        library_name: str,
-        folder_name: str,
-        token: str
-    ) -> str:
+    def get_download_urls_for_files_in_folder(drive_id: str, folder_name: str, token: str) -> str:
         """Returns the list of files in a folder with pre-authed download URLs.
 
         Args:
-            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant where the folder lives.
-            sharepoint_site_name (str): Name of the SharePoint site where the folder lives.
-            library_name (str): Name of the library where the folder lives.
-            file_name (str): Name of the folder.
+            drive_id (str): ID of the SharePoint drive where the folder lives.
+            folder_name (str): Name of the folder.
             token (str): Bearer token for the request.
 
         Returns:
-            str: Web URL to download the file.
+            list: List of files in the folder with their download URLs and metadata.
         """
 
-        headers = {
+        headers: dict[str, str] = {
             "Accept": "application/json",
             "Content-Type": "application/json; charset=utf-8",
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
-
-        drive_id = SharePointUtilities._get_drive_id(
-            sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
 
         # Get the data response
         url = (
@@ -226,12 +196,20 @@ class SharePointUtilities():
         return response.json()["value"]
 
     @staticmethod
-    def _get_drive_id(
-        sharepoint_tenant_fqdn: str,
-        sharepoint_site_name: str,
-        library_name: str,
-        headers: str
+    def get_drive_id(
+        sharepoint_tenant_fqdn: str, sharepoint_site_name: str, library_name: str, headers: dict[str, str]
     ) -> str:
+        """Gets the drive ID for a SharePoint document library.
+
+        Args:
+            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant. Takes the form of "<tenant>.sharepoint.com".
+            sharepoint_site_name (str): Name of the SharePoint site.
+            library_name (str): Name of the document library.
+            headers (dict[str, str]): HTTP headers including authorization token.
+
+        Returns:
+            str: Drive ID of the specified document library.
+        """
         web_url = f"https://{sharepoint_tenant_fqdn}/sites/{sharepoint_site_name}/{library_name}"
 
         # Get drives for site

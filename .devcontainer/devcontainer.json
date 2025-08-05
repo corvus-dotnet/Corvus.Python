@@ -3,38 +3,66 @@
 {
 	"name": "Python 3",
 	"image": "endjin.azurecr.io/mdp/spark-sandbox-3.4.1:2.0.7",
-
 	"customizations": {
 		"vscode": {
 			"settings": {
 				"terminal.integrated.profiles.linux": {
-				  "pwsh": {
-					"path": "/opt/microsoft/powershell/7/pwsh",
-					"args": [
-						"-noexit",
-						"-file",
-						"${containerWorkspaceFolder}/.venv/bin/Activate.ps1"
-					 ]
-				  }
+					"pwsh": {
+						"path": "/opt/microsoft/powershell/7/pwsh",
+						"args": [
+							"-noexit",
+							"-file",
+							"${containerWorkspaceFolder}/.venv/bin/Activate.ps1"
+						]
+					}
 				},
 				"files.exclude": {
 					"**/__pycache__": true,
 					".pytest_cache": true,
-					".venv": true
+					".mypy_cache": true
 				},
-				"flake8.args": ["--config=.flake8"],
 				"python.defaultInterpreterPath": "./.venv/bin/python",
 				"python.pythonPath": "./.venv/bin/python",
 				"python.languageServer": "Pylance",
-				"python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
-				"python.formatting.autopep8Args": ["--max-line-length", "120", "--experimental"],
-				"python.formatting.blackPath": "/usr/local/py-utils/bin/black",
-				"python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
+				"editor.formatOnSave": true,
 				"python.testing.pytestEnabled": true,
 				"python.terminal.activateEnvironment": true,
-				"python.experiments.optInto": ["pythonTerminalEnvVarActivation"],
+				"python.experiments.optInto": [
+					"pythonTerminalEnvVarActivation"
+				],
+				"python.analysis.inlayHints.variableTypes": true,
+				"python.analysis.autoFormatStrings": true,
+				"python.analysis.autoImportCompletions": false,
+				"python.analysis.completeFunctionParens": false,
+				"python.analysis.importFormat": "relative",
+				"python.analysis.typeCheckingMode": "standard",
+				"python.analysis.inlayHints.functionReturnTypes": true,
+				"python.analysis.diagnosticSeverityOverrides": {
+					"reportUnknownParameterType": "error",
+					"reportUnknownArgumentType": "error"
+				},
+				// black-formatter.path property does not seem to sync properly inside the [python] Language-Specific Editor Settings, so have to define it outside.
+				"black-formatter.path": [
+					"./.venv/bin/black"
+				],
+				"isort.path": [
+					"./.venv/bin/isort"
+				],
+				"mypy-type-checker.interpreter": [
+					"./.venv/bin/python"
+				],
+				// After building the container, often the Language-Specific Editor Settings defined here don't take effect
+				// until you perform a manual 'Reload Window' from the Command Palette.
+				// Sometimes, as in the case of the 'black-formatter.path' property, the settings don't sync properly even after doing this,
+				// so you have to define them at the level above, at the top level of the 'settings' property. 
 				"[python]": {
-					"editor.rulers": [120],
+					"editor.defaultFormatter": "ms-python.black-formatter",
+					"editor.codeActionsOnSave": {
+						"source.organizeImports": "always"
+					},
+					"editor.rulers": [
+						120
+					],
 					"rewrap.wrappingColumn": 120,
 					"rewrap.autoWrap.enabled": true
 				},
@@ -56,13 +84,13 @@
 				"alexkrechik.cucumberautocomplete",
 				"ms-python.flake8",
 				"GitHub.vscode-github-actions",
-				"GitHub.copilot",
-				"GitHub.copilot-chat"
+				"ms-vsliveshare.vsliveshare",
+				"ms-python.black-formatter",
+				"redhat.vscode-xml",
+				"ms-toolsai.datawrangler"
 			]
 		}
 	},
-
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
 		// Make handful of Spark UI ports (one per app) available via http://localhost:<port>
@@ -72,7 +100,6 @@
 		4043,
 		4044
 	],
-
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "poetry install",
 	// The default here seems to have flipped, commenting-out 'remoteUser' no longer causes the container
