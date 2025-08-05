@@ -11,7 +11,7 @@ CWD = os.path.join(os.getcwd())
 
 
 @dataclass
-class LocalSparkSessionConfig():
+class LocalSparkSessionConfig:
     """Class to represent configuration of a Local Spark Session.
 
     Attributes:
@@ -34,6 +34,7 @@ class LocalSparkSessionConfig():
             the UI off for unit tests to avoid port binding issues.
         additional_spark_config (dict, optional): Additional Spark configuration to set. Defaults to an empty dict.
     """
+
     workload_name: str
     storage_configuration: StorageConfiguration = LocalFileSystemStorageConfiguration(os.path.join(CWD, "data"))
     warehouse_dir: str = os.path.join(CWD, "warehouse")
@@ -47,11 +48,12 @@ class LocalSparkSessionConfig():
 
 
 @dataclass
-class LocalSparkSession():
+class LocalSparkSession:
     """Class to represent a Local Spark session.
     Attributes:
         config (LocalSparkSessionConfig): The configuration for the local Spark session.
     """
+
     config: LocalSparkSessionConfig
 
     def create_spark_session(self) -> SparkSession:
@@ -62,17 +64,11 @@ class LocalSparkSession():
             SparkSession: The Spark session.
         """
         builder = (
-            SparkSession.builder.appName(self.config.workload_name)
+            SparkSession.builder.appName(self.config.workload_name)  # type: ignore
             .master("local[*]")
-            .config(
-                "spark.sql.extensions",
-                "io.delta.sql.DeltaSparkSessionExtension")
-            .config(
-                "spark.sql.catalog.spark_catalog",
-                "org.apache.spark.sql.delta.catalog.DeltaCatalog")
-            .config(
-                "spark.ui.enabled",
-                "true" if self.config.enable_spark_ui else "false")
+            .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+            .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+            .config("spark.ui.enabled", "true" if self.config.enable_spark_ui else "false")
         )
 
         extra_packages = self.config.extra_packages
@@ -85,7 +81,8 @@ class LocalSparkSession():
 
         if self.config.enable_az_cli_auth:
             builder = builder.config(
-                "spark.jars.repositories", "https://pkgs.dev.azure.com/endjin-labs/hadoop/_packaging/hadoop/maven/v1")
+                "spark.jars.repositories", "https://pkgs.dev.azure.com/endjin-labs/hadoop/_packaging/hadoop/maven/v1"
+            )
             extra_packages.append("com.endjin.hadoop:hadoop-azure-token-providers:1.0.1")
 
         if self.config.enable_hive_support:
@@ -94,28 +91,26 @@ class LocalSparkSession():
             # runs of the app. This can cause issues with the metastore not being found when the app is restarted.
             hive_metastore_dir = self.config.hive_metastore_dir
 
-            builder = builder \
-                .config(
+            builder = (
+                builder.config(
                     "javax.jdo.option.ConnectionURL",
-                    f"jdbc:derby:;databaseName={hive_metastore_dir}/metastore_db;create=true"
-                ) \
-                .config("spark.driver.extraJavaOptions", f"-Dderby.system.home={hive_metastore_dir}") \
+                    f"jdbc:derby:;databaseName={hive_metastore_dir}/metastore_db;create=true",
+                )
+                .config("spark.driver.extraJavaOptions", f"-Dderby.system.home={hive_metastore_dir}")
                 .enableHiveSupport()
+            )
 
         if self.config.additional_spark_config:
             for k, v in self.config.additional_spark_config.items():
                 builder = builder.config(k, v)
 
-        spark = configure_spark_with_delta_pip(builder, extra_packages=extra_packages).getOrCreate()
+        spark = configure_spark_with_delta_pip(builder, extra_packages=extra_packages).getOrCreate()  # type: ignore
 
         if self.config.enable_az_cli_auth:
-            spark.sparkContext._jsc.hadoopConfiguration().set(
-                "fs.azure.account.auth.type",
-                "Custom"
-            )
-            spark.sparkContext._jsc.hadoopConfiguration().set(
+            spark.sparkContext._jsc.hadoopConfiguration().set("fs.azure.account.auth.type", "Custom")  # type: ignore
+            spark.sparkContext._jsc.hadoopConfiguration().set(  # type: ignore
                 "fs.azure.account.oauth.provider.type",
-                "com.endjin.hadoop.fs.azurebfs.custom.AzureCliCredentialTokenProvider"
+                "com.endjin.hadoop.fs.azurebfs.custom.AzureCliCredentialTokenProvider",
             )
 
         spark.sparkContext.setLogLevel("ERROR")
