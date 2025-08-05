@@ -4,15 +4,10 @@ from dataclasses import dataclass
 from typing import List, Tuple
 import pyodbc
 import struct
+from pyspark.sql import SparkSession
+
 from corvus_python.pyspark.utilities import LocalSparkSessionConfig, get_or_create_spark_session
 from corvus_python.auth import get_az_cli_token
-
-try:
-    from pyspark.sql import SparkSession
-except ImportError as exc:
-    raise ImportError("PySpark is required for sync_synapse_tables_to_local_spark functionality. "
-                      "Install using corvus-python[pyspark]") from exc
-
 
 @dataclass
 class ObjectSyncDetails:
