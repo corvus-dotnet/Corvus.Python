@@ -29,7 +29,7 @@ class StorageConfiguration(ABC):
         self.storage_options = storage_options
 
     @abstractmethod
-    def get_full_path(self, layer: DataLakeLayer, path: str):
+    def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
         """Returns the full path to a file in storage.
 
         Args:
