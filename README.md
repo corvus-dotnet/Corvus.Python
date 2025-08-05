@@ -4,7 +4,7 @@ This provides a library of Python utility functions and classes, generally in th
 
 ## Sub-modules
 
-### `pyspark`
+### `pyspark.utilities`
 
 **⚠️ Note: This module requires the 'pyspark' extra to be installed: `corvus-python[pyspark]`**
 

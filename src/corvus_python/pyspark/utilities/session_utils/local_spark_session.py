@@ -3,13 +3,8 @@
 from dataclasses import dataclass, field
 import os
 from corvus_python.storage import StorageConfiguration, LocalFileSystemStorageConfiguration
-
-try:
-    from pyspark.sql import SparkSession
-    from delta import configure_spark_with_delta_pip
-except ImportError as exc:
-    raise ImportError("PySpark and Delta Lake are required for LocalSparkSession functionality. "
-                      "Install using corvus-python[pyspark]") from exc
+from pyspark.sql import SparkSession
+from delta import configure_spark_with_delta_pip
 
 
 CWD = os.path.join(os.getcwd())
