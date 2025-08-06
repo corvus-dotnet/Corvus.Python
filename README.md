@@ -123,3 +123,76 @@ Includes utility functions when working with SharePoint REST API. Primary API in
 | Component Name                        | Object Type | Description                                                                                           | Import syntax                                                |
 |---------------------------------------|-------------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 | <code>SharePointUtilities</code>      | Class       | A utility class for interacting with SharePoint REST API.                                             | <code>from corvus_python.sharepoint import SharePointUtilities</code> |
+
+---
+
+### Email
+
+Includes utility classes and models for sending emails using Azure Communication Services (ACS). Primary API interfaces:
+
+| Component Name                | Object Type | Description                                                                                           | Import syntax                                                |
+|-------------------------------|-------------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| <code>AcsEmailService</code>  | Class       | A service class for sending emails through Azure Communication Services.                              | <code>from corvus_python.email import AcsEmailService</code> |
+| <code>EmailContent</code>     | Class       | Dataclass representing email content including subject, plain text, and HTML.                         | <code>from corvus_python.email import EmailContent</code>    |
+| <code>EmailRecipients</code>  | Class       | Dataclass representing email recipients (to, cc, bcc).                                               | <code>from corvus_python.email import EmailRecipients</code> |
+| <code>EmailRecipient</code>   | Class       | Dataclass representing a single email recipient with address and display name.                        | <code>from corvus_python.email import EmailRecipient</code>  |
+| <code>EmailAttachment</code>  | Class       | Dataclass representing an email attachment with name, content type, and base64-encoded content.       | <code>from corvus_python.email import EmailAttachment</code> |
+| <code>EmailError</code>       | Class       | Exception class for email-related errors.                                                            | <code>from corvus_python.email import EmailError</code>      |
+
+#### Usage Example
+
+```python
+from corvus_python.email import (
+    AcsEmailService, 
+    EmailContent, 
+    EmailRecipients, 
+    EmailRecipient, 
+    EmailAttachment
+)
+
+# Initialize the email service
+email_service = AcsEmailService(
+    acs_connection_string="your_acs_connection_string",
+    from_email="sender@yourdomain.com",
+    email_sending_disabled=False  # Set to True for testing/development
+)
+
+# Create email content
+content = EmailContent(
+    subject="Welcome to Our Service",
+    plain_text="Welcome! Thank you for joining our service.",
+    html="<h1>Welcome!</h1><p>Thank you for joining our service.</p>"
+)
+
+# Define recipients
+recipients = EmailRecipients(
+    to=[
+        EmailRecipient("user1@example.com", "User One"),
+        EmailRecipient("user2@example.com", "User Two")
+    ],
+    cc=[EmailRecipient("manager@example.com", "Manager")],
+    bcc=[EmailRecipient("admin@example.com", "Admin")]
+)
+
+# Optional: Add attachments
+attachments = [
+    EmailAttachment(
+        name="welcome_guide.pdf",
+        content_type="application/pdf",
+        content_in_base64="base64_encoded_content_here"
+    )
+]
+
+# Send the email
+try:
+    email_service.send_email(content, recipients, attachments)
+    print("Email sent successfully!")
+except EmailError as e:
+    print(f"Failed to send email: {e}")
+```
+
+**Configuration Notes:**
+- Requires an Azure Communication Services resource with email capability configured
+- The `from_email` must be from a verified domain in your ACS resource
+- Set `email_sending_disabled=True` during development to prevent actual emails from being sent
+- Attachments must be base64-encoded before adding to the `EmailAttachment` object
