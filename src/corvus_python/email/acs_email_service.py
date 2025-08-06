@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, MutableMapping
+from typing import Any, List, MutableMapping, Optional
 
 from azure.communication.email import EmailClient
 from azure.core.polling._poller import LROPoller
@@ -21,7 +21,7 @@ class AcsEmailService:
         self,
         content: EmailContent,
         recipients: EmailRecipients,
-        attachments: List[EmailAttachment] = [],
+        attachments: Optional[List[EmailAttachment]] = None,
     ) -> None:
         message: dict[str, Any] = {
             "content": content.to_dict(),
