@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class DataLakeLayer(str, Enum):
@@ -9,8 +10,9 @@ class DataLakeLayer(str, Enum):
     For more information on medallion architecture, see:
     - https://www.databricks.com/glossary/medallion-architecture
     """
-    BRONZE = "bronze",
-    SILVER = "silver",
+
+    BRONZE = "bronze"
+    SILVER = "silver"
     GOLD = "gold"
 
 
@@ -20,13 +22,14 @@ class StorageConfiguration(ABC):
     Attributes:
         storage_options (dict): Provider-specific storage options to use when reading or writing data.
     """
-    def __init__(self, storage_options: dict):
+
+    def __init__(self, storage_options: Optional[Dict[str, Any]]):
         """Constructor method
 
         Args:
             storage_options (dict): Provider-specific storage options to use when reading or writing data.
         """
-        self.storage_options = storage_options
+        self.storage_options: Optional[Dict[str, Any]] = storage_options
 
     @abstractmethod
     def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
