@@ -10,6 +10,7 @@ class LocalFileSystemStorageConfiguration(StorageConfiguration):
     Attributes:
         base_path (str): The base path to use for the local file system. This should not have a trailing separator.
     """
+
     def __init__(self, base_path: str):
         """Constructor method
 
