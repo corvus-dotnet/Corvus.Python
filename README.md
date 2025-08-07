@@ -193,6 +193,6 @@ except EmailError as e:
 
 **Configuration Notes:**
 - Requires an Azure Communication Services resource with email capability configured
-- The `from_email` must be from a verified domain in your ACS resource
+- The `from_email` must use a configured MailFrom address from your ACS resource
 - Set `email_sending_disabled=True` during development to prevent actual emails from being sent
 - Attachments must be base64-encoded before adding to the `EmailAttachment` object
