@@ -1,5 +1,6 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
+from typing import Any, Dict, Optional
 from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 
@@ -10,10 +11,8 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
     Attributes:
         storage_account_name (str): The name of the storage account.
     """
-    def __init__(
-            self,
-            storage_account_name: str,
-            storage_options: dict = None):
+
+    def __init__(self, storage_account_name: str, storage_options: Optional[Dict[str, Any]] = None):
         """Constructor method
 
         Args:
@@ -36,11 +35,10 @@ class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):
         storage_account_name (str): The name of the storage account.
         file_system_name (str): The name of the file system.
     """
+
     def __init__(
-            self,
-            storage_account_name: str,
-            file_system_name: str,
-            storage_options: dict = None):
+        self, storage_account_name: str, file_system_name: str, storage_options: Optional[Dict[str, Any]] = None
+    ):
         """Constructor method
 
         Args:
