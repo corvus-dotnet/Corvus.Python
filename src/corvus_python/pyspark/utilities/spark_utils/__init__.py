@@ -8,11 +8,12 @@ New code should import directly from corvus_python.spark_utils.
 
 import warnings
 
-from corvus_python.spark_utils.spark_utils import *  # noqa F401
+# Re-export everything from the new location
+from corvus_python.spark_utils import get_spark_utils  # noqa F401
 
 # Issue a deprecation warning when this module is imported
 warnings.warn(
-    "corvus_python.pyspark.utilities.spark_utils.spark_utils is deprecated. "
+    "get_spark_utils in corvus_python.pyspark.utilities is deprecated. "
     "Import from corvus_python.spark_utils instead.",
     DeprecationWarning,
     stacklevel=2,
