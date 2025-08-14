@@ -1,7 +1,58 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-from typing import Any, Dict
+from typing import Dict, TypedDict, Literal, Optional
 from corvus_python.auth import get_az_cli_token
+
+
+class StaticSecretConfig(TypedDict):
+    """Configuration for a static secret."""
+
+    type: Literal["static"]
+    value: str
+
+
+class LinkedServiceSecretsConfig(TypedDict, total=False):
+    """Configuration for secrets within a linked service.
+
+    Keys are secret names, values are secret configurations.
+    """
+
+    pass  # This allows any string key with StaticSecretConfig values
+
+
+class GetSecretWithLSConfig(TypedDict, total=False):
+    """Configuration for getSecretWithLS method.
+
+    Keys are linked service names, values are their secret configurations.
+    """
+
+    pass  # This allows any string key with LinkedServiceSecretsConfig values
+
+
+class GetTokenConfig(TypedDict):
+    """Configuration for getToken method."""
+
+    tenantId: str
+
+
+class CredentialsConfig(TypedDict):
+    """Configuration for credentials utilities."""
+
+    getSecretWithLS: Dict[str, Dict[str, StaticSecretConfig]]
+    getToken: Optional[GetTokenConfig]
+
+
+class EnvConfig(TypedDict):
+    """Configuration for environment utilities."""
+
+    getWorkspaceName: str
+
+
+class LocalSparkUtilsConfig(TypedDict):
+    """Main configuration for LocalSparkUtils."""
+
+    credentials: CredentialsConfig
+    env: EnvConfig
 
 
 class LSRLinkedServiceFailure(Exception):
@@ -52,32 +103,26 @@ class LocalCredentialUtils:
     additional methods will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing configuration required for `credentials` API. See
+        config (CredentialsConfig): Configuration required for `credentials` API. See
             https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: CredentialsConfig):
         """Constructor method
 
         Args:
-            config (dict): Dictionary representing configuration required for `credentials` API. See
+            config (CredentialsConfig): Configuration required for `credentials` API. See
                 https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
         """
-        self.config: Dict[str, Any] = config
+        self.config: CredentialsConfig = config
 
     def getSecretWithLS(self, linked_service: str, secret_name: str) -> str:
         lookup = self.config.get("getSecretWithLS")
-
-        if not isinstance(lookup, dict):
-            raise ValueError(f"Invalid configuration for getSecretWithLS: {lookup}")
 
         target_ls = lookup.get(linked_service)
 
         if not target_ls:
             raise LSRLinkedServiceFailure(linked_service)
-
-        if not isinstance(target_ls, dict):
-            raise ValueError(f"Invalid configuration for getSecretWithLS.{linked_service}: {target_ls}")
 
         target_secret = target_ls.get(secret_name)
 
@@ -111,13 +156,7 @@ class LocalCredentialUtils:
         tenant_id = None
         get_token_config = self.config.get("getToken")
         if get_token_config:
-            if not isinstance(get_token_config, dict):
-                raise ValueError(f"Invalid configuration for getToken: {get_token_config}")
-
             tenant_id = get_token_config.get("tenantId")
-
-            if not isinstance(tenant_id, str):
-                raise ValueError(f"Invalid tenantId in getToken configuration: {tenant_id}")
 
         return get_az_cli_token(scope, tenant_id=tenant_id)  # type: ignore
 
@@ -127,28 +166,23 @@ class LocalEnvUtils:
     methods will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing configuration required for `env` API. See
+        config (EnvConfig): Configuration required for `env` API. See
             https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
 
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: EnvConfig):
         """Constructor method
 
         Args:
-            config (dict): Dictionary representing configuration required for `env` API. See
+            config (EnvConfig): Configuration required for `env` API. See
                 https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
         """
 
-        self.config = config
+        self.config: EnvConfig = config
 
     def getWorkspaceName(self) -> str:
-        workspace_name = self.config.get("getWorkspaceName")
-
-        if not isinstance(workspace_name, str):
-            raise ValueError(f"Invalid workspace name configuration: {workspace_name}")
-
-        return workspace_name
+        return self.config.get("getWorkspaceName")
 
 
 class LocalSparkUtils:
@@ -156,34 +190,19 @@ class LocalSparkUtils:
     sub-classes will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+        config (LocalSparkUtilsConfig): Full `LocalSparkUtils` configuration. See
             https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
-        credentials (dict): LocalCredentialUtils instance.
-        env (dict): LocalEnvUtils instance.
+        credentials (LocalCredentialUtils): LocalCredentialUtils instance.
+        env (LocalEnvUtils): LocalEnvUtils instance.
     """
 
-    def __init__(self, local_config: Dict[str, Any]):
+    def __init__(self, local_config: LocalSparkUtilsConfig):
         """Constructor method
 
         Args:
-            local_config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+            local_config (LocalSparkUtilsConfig): Full `LocalSparkUtils` configuration. See
                 https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
         """
-        self.config = local_config
-
-        if not isinstance(local_config, dict):
-            raise ValueError(f"Invalid configuration for LocalSparkUtils: {local_config}")
-
-        credentials = local_config.get("credentials")
-
-        if not isinstance(credentials, dict):
-            raise ValueError(f"Invalid configuration for LocalCredentialUtils: {credentials}")
-
-        self.credentials = LocalCredentialUtils(credentials)  # type: ignore
-
-        env = local_config.get("env")
-
-        if not isinstance(env, dict):
-            raise ValueError(f"Invalid configuration for LocalEnvUtils: {env}")
-
-        self.env = LocalEnvUtils(env)  # type: ignore
+        self.config: LocalSparkUtilsConfig = local_config
+        self.credentials = LocalCredentialUtils(local_config.get("credentials"))
+        self.env = LocalEnvUtils(local_config.get("env"))
