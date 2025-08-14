@@ -4,18 +4,12 @@ This provides a library of Python utility functions and classes, generally in th
 
 ## Sub-modules
 
-### `pyspark.utilities`
-
-**⚠️ Note: This module requires the 'pyspark' extra to be installed: `corvus-python[pyspark]`**
-
-Includes utility functions when working with PySpark to build data processing solutions. Primary API interfaces:
+### `spark_utils`
 
 | Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
 |-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| <code>get_or_create_spark_session</code> | Function    | Gets or creates a Spark Session, depending on the environment. Supports Synapse or a Local Spark Session configuration.                                                                                                      | <code>from corvus_python.pyspark.utilities import get_or_create_spark_session</code> |
-| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapase) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.pyspark.utilities import get_spark_utils</code>      |
-| <code>null_safe_join</code>       | Function    | Joins two Spark DataFrames incorporating null-safe equality.                                                                                                                                                                | <code>from corvus_python.pyspark.utilities import null_safe_join</code>       |
-|                                   |             |                                                                                                                                                                                                                             |                                                                               |
+| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
+
 
 #### `get_spark_utils()`
 
@@ -60,6 +54,17 @@ Below shows the current, complete specification of the config file for the suppo
 
 By default, a file in the root of the current working directory with file name `local-spark-utils-config.json` will be automatically discovered. If the file resides in a different location, and/or has a different file name, then the absolute path must be specified when calling `get_spark_utils()`.
 
+
+### `pyspark.utilities`
+
+**⚠️ Note: This module requires the 'pyspark' extra to be installed: `corvus-python[pyspark]`**
+
+Includes utility functions when working with PySpark to build data processing solutions. Primary API interfaces:
+
+| Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
+|-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| <code>get_or_create_spark_session</code> | Function    | Gets or creates a Spark Session, depending on the environment. Supports Synapse or a Local Spark Session configuration.                                                                                                      | <code>from corvus_python.pyspark.utilities import get_or_create_spark_session</code> |
+| <code>null_safe_join</code>       | Function    | Joins two Spark DataFrames incorporating null-safe equality.                                                                                                                                                                | <code>from corvus_python.pyspark.utilities import null_safe_join</code>       |
 ---
 
 ### `pyspark.synapse`
@@ -107,7 +112,7 @@ Includes utility functions when working with Synapse Analytics. Primary API inte
 
 ---
 
-### Auth
+### `auth`
 
 Includes utility functions when working with authentication libraries within Python. Primary API interfaces:
 
@@ -116,7 +121,7 @@ Includes utility functions when working with authentication libraries within Pyt
 | <code>get_az_cli_token</code> | Function    | Gets an Entra ID token from the Azure CLI for a specified resource (/audience) and tenant. Useful for local development. | <code>from corvus_python.auth import get_az_cli_token</code> |
 |                               |             |                                                                                                                          |                                                              |
 
-### SharePoint
+### `sharepoint`
 
 Includes utility functions when working with SharePoint REST API. Primary API interfaces:
 
@@ -126,7 +131,7 @@ Includes utility functions when working with SharePoint REST API. Primary API in
 
 ---
 
-### Email
+### `email`
 
 Includes utility classes and models for sending emails using Azure Communication Services (ACS). Primary API interfaces:
 
