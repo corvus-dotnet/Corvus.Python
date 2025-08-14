@@ -1,8 +1,8 @@
 """
 Deprecated: This module has been moved to corvus_python.spark_utils.
 
-This module provides backward compatibility aliases for the storage configuration classes
-that have been moved from corvus_python.pyspark.storage to corvus_python.spark_utils.
+This module provides backward compatibility aliases for the spark utility functions
+that have been moved from corvus_python.pyspark.utilities to corvus_python.spark_utils.
 New code should import directly from corvus_python.spark_utils.
 """
 
