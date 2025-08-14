@@ -1,6 +1,58 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
+from typing import Dict, TypedDict, Literal, Optional
 from corvus_python.auth import get_az_cli_token
+
+
+class StaticSecretConfig(TypedDict):
+    """Configuration for a static secret."""
+
+    type: Literal["static"]
+    value: str
+
+
+class LinkedServiceSecretsConfig(TypedDict, total=False):
+    """Configuration for secrets within a linked service.
+
+    Keys are secret names, values are secret configurations.
+    """
+
+    pass  # This allows any string key with StaticSecretConfig values
+
+
+class GetSecretWithLSConfig(TypedDict, total=False):
+    """Configuration for getSecretWithLS method.
+
+    Keys are linked service names, values are their secret configurations.
+    """
+
+    pass  # This allows any string key with LinkedServiceSecretsConfig values
+
+
+class GetTokenConfig(TypedDict):
+    """Configuration for getToken method."""
+
+    tenantId: str
+
+
+class CredentialsConfig(TypedDict):
+    """Configuration for credentials utilities."""
+
+    getSecretWithLS: Dict[str, Dict[str, StaticSecretConfig]]
+    getToken: Optional[GetTokenConfig]
+
+
+class EnvConfig(TypedDict):
+    """Configuration for environment utilities."""
+
+    getWorkspaceName: str
+
+
+class LocalSparkUtilsConfig(TypedDict):
+    """Main configuration for LocalSparkUtils."""
+
+    credentials: CredentialsConfig
+    env: EnvConfig
 
 
 class LSRLinkedServiceFailure(Exception):
@@ -46,23 +98,23 @@ class SecretNotFound(Exception):
         super().__init__(self.message)
 
 
-class LocalCredentialUtils():
+class LocalCredentialUtils:
     """Class which mirrors elements of the mssparkutils.credentials API. Intentionally not a full representation -
     additional methods will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing configuration required for `credentials` API. See
+        config (CredentialsConfig): Configuration required for `credentials` API. See
             https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: CredentialsConfig):
         """Constructor method
 
         Args:
-            config (dict): Dictionary representing configuration required for `credentials` API. See
+            config (CredentialsConfig): Configuration required for `credentials` API. See
                 https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
         """
-        self.config = config
+        self.config: CredentialsConfig = config
 
     def getSecretWithLS(self, linked_service: str, secret_name: str) -> str:
         lookup = self.config.get("getSecretWithLS")
@@ -81,8 +133,7 @@ class LocalCredentialUtils():
             case "static":
                 return target_secret.get("value")
             case _:
-                raise ValueError(
-                    f"Unknown secret type {target_secret.get('type')}")
+                raise ValueError(f"Unknown secret type {target_secret.get('type')}")
 
     def getToken(self, audience: str) -> str:
         scopes = {
@@ -107,49 +158,51 @@ class LocalCredentialUtils():
         if get_token_config:
             tenant_id = get_token_config.get("tenantId")
 
-        return get_az_cli_token(scope, tenant_id=tenant_id)
+        return get_az_cli_token(scope, tenant_id=tenant_id)  # type: ignore
 
 
-class LocalEnvUtils():
+class LocalEnvUtils:
     """Class which mirrors elements of the mssparkutils.env API. Intentionally not a full representation - additional
     methods will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing configuration required for `env` API. See
+        config (EnvConfig): Configuration required for `env` API. See
             https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
 
     """
-    def __init__(self, config: dict):
+
+    def __init__(self, config: EnvConfig):
         """Constructor method
 
         Args:
-            config (dict): Dictionary representing configuration required for `env` API. See
+            config (EnvConfig): Configuration required for `env` API. See
                 https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
         """
 
-        self.config = config
+        self.config: EnvConfig = config
 
     def getWorkspaceName(self) -> str:
         return self.config.get("getWorkspaceName")
 
 
-class LocalSparkUtils():
+class LocalSparkUtils:
     """Class which mirrors elements of the mssparkutils API. Intentionally not a full representation - additional
     sub-classes will be added to it as and when the need arises.
 
     Attributes:
-        config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+        config (LocalSparkUtilsConfig): Full `LocalSparkUtils` configuration. See
             https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
-        credentials (dict): LocalCredentialUtils instance.
-        env (dict): LocalEnvUtils instance.
+        credentials (LocalCredentialUtils): LocalCredentialUtils instance.
+        env (LocalEnvUtils): LocalEnvUtils instance.
     """
-    def __init__(self, local_config: dict):
+
+    def __init__(self, local_config: LocalSparkUtilsConfig):
         """Constructor method
 
         Args:
-            local_config (dict): Dictionary representing full `LocalSparkUtils` configuration. See
+            local_config (LocalSparkUtilsConfig): Full `LocalSparkUtils` configuration. See
                 https://github.com/corvus-dotnet/Corvus.Python/blob/main/README.md for details.
         """
-        self.config = local_config
+        self.config: LocalSparkUtilsConfig = local_config
         self.credentials = LocalCredentialUtils(local_config.get("credentials"))
         self.env = LocalEnvUtils(local_config.get("env"))
