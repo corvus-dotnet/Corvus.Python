@@ -15,6 +15,19 @@ class DataLakeLayer(str, Enum):
     SILVER = "silver"
     GOLD = "gold"
 
+    def __str__(self):
+        """Returns the string representation of the data lake layer.
+        The default behaviour of Enums with "mix-ins" changed in Python 3.11
+        to return the member name instead of the value, so we need to be explicit
+        to maintain backward compatibility. See: https://github.com/python/cpython/pull/22392
+        TODO: once Python 3.10 compatibility is no longer required, use StrEnum instead
+        and remove this method.
+
+        Returns:
+            str: The string representation of the data lake layer.
+        """
+        return self.value
+
 
 class StorageConfiguration(ABC):
     """Base class for a class that provides configuration for persistent storage.
