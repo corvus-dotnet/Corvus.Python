@@ -313,28 +313,38 @@ def test_get_download_urls_for_files_in_folder_failure():
 
 # endregion
 
-# region Tests for get_folders_in_folder
+# region Tests for get_items_in_folder
 
 
-def test_get_folders_in_folder_success():
+def test_get_items_in_folder_success():
     drive_id = "fake_drive_id"
     folder_name = "folder_name"
     token = "fake_token"
     mock_folders = [
-        {"id": "folder1", "name": "folder1"},
-        {"id": "folder2", "name": "folder2"},
+        {
+            "id": "folder1",
+            "name": "folder1",
+            "webUrl": "https://example.sharepoint.com/sites/site_name/library_name/folder_name/folder1",
+            "folder": {},
+        },
+        {
+            "id": "folder2",
+            "name": "folder2",
+            "webUrl": "https://example.sharepoint.com/sites/site_name/library_name/folder_name/folder2",
+            "folder": {},
+        },
     ]
 
     with patch("requests.get") as mock_get:
         # Mock the response for getting the folders in the folder
         mock_get.return_value = Mock(status_code=200, json=lambda: {"value": mock_folders})
 
-        result = SharePointUtilities.get_folders_in_folder(drive_id, folder_name, token)
+        result = SharePointUtilities.get_items_in_folder(drive_id, folder_name, token)
 
         mock_get.assert_called_once_with(
             (
                 f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{folder_name}:/children"
-                "?$select=id,name,folder,webUrl"
+                "?$select=id,name,webUrl,file,folder"
             ),
             headers={
                 "Accept": "application/json",
@@ -346,7 +356,7 @@ def test_get_folders_in_folder_success():
         assert result == mock_folders
 
 
-def test_get_folders_in_folder_failure():
+def test_get_items_in_folder_failure():
     drive_id = "fake_drive_id"
     folder_name = "folder_name"
     token = "fake_token"
@@ -358,13 +368,13 @@ def test_get_folders_in_folder_failure():
         )
 
         with pytest.raises(requests.exceptions.HTTPError):
-            SharePointUtilities.get_folders_in_folder(drive_id, folder_name, token)
+            SharePointUtilities.get_items_in_folder(drive_id, folder_name, token)
 
         mock_get.assert_called_once_with(
             (
                 f"https://graph.microsoft.com/v1.0/drives/{drive_id}/"
                 f"root:/{folder_name}:/children"
-                "?$select=id,name,folder,webUrl"
+                "?$select=id,name,webUrl,file,folder"
             ),
             headers={
                 "Accept": "application/json",

@@ -196,9 +196,9 @@ class SharePointUtilities:
         return response.json()["value"]
 
     @staticmethod
-    def get_folders_in_folder(drive_id: str, folder_path: str, token: str) -> list[str]:
+    def get_items_in_folder(drive_id: str, folder_path: str, token: str) -> list[str]:
         """
-        Returns all folders within a specified folder in a SharePoint drive.
+        Returns all items within a specified folder in a SharePoint drive.
 
         Args:
             drive_id (str): ID of the SharePoint drive.
@@ -206,7 +206,7 @@ class SharePointUtilities:
             token (str): Bearer token for the request.
 
         Returns:
-            list: List of folders.
+            list: List of items in the folder.
         """
         headers = {
             "Accept": "application/json",
@@ -215,12 +215,14 @@ class SharePointUtilities:
         }
         url = (
             f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{folder_path}:/children"
-            "?$select=id,name,folder,webUrl"
+            "?$select=id,name,webUrl,file,folder"
         )
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        # Only return the webUrl for items that are folders (have a 'folder' property)
-        return response.json()["value"]
+        # Only return items that are folders (have a 'folder' property)
+        items = response.json()["value"]
+        folders = [item for item in items if "folder" in item]
+        return folders
 
     @staticmethod
     def get_drive_id(
