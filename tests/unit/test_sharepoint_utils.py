@@ -313,6 +313,79 @@ def test_get_download_urls_for_files_in_folder_failure():
 
 # endregion
 
+# region Tests for get_items_in_folder
+
+
+def test_get_items_in_folder_success():
+    drive_id = "fake_drive_id"
+    folder_name = "folder_name"
+    token = "fake_token"
+    mock_folders = [
+        {
+            "id": "folder1",
+            "name": "folder1",
+            "webUrl": "https://example.sharepoint.com/sites/site_name/library_name/folder_name/folder1",
+            "folder": {},
+        },
+        {
+            "id": "folder2",
+            "name": "folder2",
+            "webUrl": "https://example.sharepoint.com/sites/site_name/library_name/folder_name/folder2",
+            "folder": {},
+        },
+    ]
+
+    with patch("requests.get") as mock_get:
+        # Mock the response for getting the folders in the folder
+        mock_get.return_value = Mock(status_code=200, json=lambda: {"value": mock_folders})
+
+        result = SharePointUtilities.get_items_in_folder(drive_id, folder_name, token)
+
+        mock_get.assert_called_once_with(
+            (
+                f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{folder_name}:/children"
+                "?$select=id,name,webUrl,file,folder"
+            ),
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
+                "Authorization": f"Bearer {token}",
+            },
+        )
+
+        assert result == mock_folders
+
+
+def test_get_items_in_folder_failure():
+    drive_id = "fake_drive_id"
+    folder_name = "folder_name"
+    token = "fake_token"
+
+    with patch("requests.get") as mock_get:
+        # Mock the response for getting the folders in the folder
+        mock_get.return_value = Mock(
+            status_code=500, raise_for_status=lambda: (_ for _ in ()).throw(requests.exceptions.HTTPError())
+        )
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            SharePointUtilities.get_items_in_folder(drive_id, folder_name, token)
+
+        mock_get.assert_called_once_with(
+            (
+                f"https://graph.microsoft.com/v1.0/drives/{drive_id}/"
+                f"root:/{folder_name}:/children"
+                "?$select=id,name,webUrl,file,folder"
+            ),
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
+                "Authorization": f"Bearer {token}",
+            },
+        )
+
+
+# endregion
+
 # region Tests for get_drive_id
 
 
