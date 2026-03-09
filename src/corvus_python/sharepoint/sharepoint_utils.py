@@ -252,3 +252,42 @@ class SharePointUtilities:
         drive_id = next((d["id"] for d in list_drives_response.json()["value"] if d["webUrl"] == web_url))
 
         return drive_id
+
+    @staticmethod
+    def get_list_items(
+        sharepoint_tenant_fqdn: str,
+        sharepoint_site_name: str,
+        list_name: str,
+        token: str,
+    ) -> list[dict[str, Any]]:
+        """Returns all items from a SharePoint list.
+
+        Args:
+            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant. Takes the form of "<tenant>.sharepoint.com".
+            sharepoint_site_name (str): Name of the SharePoint site.
+            list_name (str): Name or ID of the SharePoint list.
+            token (str): Bearer token for the request.
+
+        Returns:
+            list[dict[str, Any]]: List of items from the SharePoint list, each containing their field values.
+        """
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {token}",
+        }
+
+        site_id = f"{sharepoint_tenant_fqdn}:/sites/{sharepoint_site_name}"
+        url = f"https://graph.microsoft.com/v1.0/sites/{site_id}:/lists/{list_name}/items?$expand=fields"
+
+        items: list[dict[str, Any]] = []
+
+        while url:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+
+            data = response.json()
+            items.extend(data["value"])
+            url = data.get("@odata.nextLink")
+
+        return items
