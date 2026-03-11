@@ -298,6 +298,7 @@ local*.*
 !local_spark_session.py
 !local_file_system_storage_configuration.py
 !local_cred_utils.py
+!src/corvus_python/storage/local_file_storage.py
 test-reports/
 pytest-test-results.xml
 behave-test-results.xml

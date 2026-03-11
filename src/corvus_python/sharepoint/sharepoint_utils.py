@@ -58,6 +58,73 @@ class SharePointUtilities:
         return base64_image
 
     @staticmethod
+    def assign_item_permissions(
+        sharepoint_tenant_fqdn: str,
+        sharepoint_site_name: str,
+        library_name: str,
+        item_path: str,
+        token: str,
+        recipients: list[dict[str, Any]],
+        write_permission: bool = False,
+    ) -> dict[str, Any]:
+        """Assigns permissions on an item in SharePoint. See https://learn.microsoft.com/en-us/graph/api/driveitem-invite.
+
+        Args:
+            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant to save the file to.
+            sharepoint_site_name (str): Name of the SharePoint site to save the file to.
+            library_name (str): Name of the library to save the file to (URL-encoded).
+            item_path (str): Full item path (relative to root folder) to use when saving. Don't start with slash.
+            token (str): Bearer token for the request.
+            recipients: Array of driveRecipient objects. See https://learn.microsoft.com/en-us/graph/api/resources/driverecipient
+            write_permission (bool): Boolean indicating whether to assign write permission
+
+        Returns:
+            dict: Response as JSON.
+        """
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {token}",
+        }
+        roles = ["write"] if write_permission else ["read"]
+        body = {"requireSignIn": True, "sendInvitation": False, "roles": roles, "recipients": recipients}
+        drive_id = SharePointUtilities.get_drive_id(sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
+        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/invite"
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status()
+        return response.json()
+
+    @staticmethod
+    def rename_file(
+        sharepoint_tenant_fqdn: str,
+        sharepoint_site_name: str,
+        library_name: str,
+        existing_file_path: str,
+        token: str,
+        new_file_name: str,
+    ) -> None:
+        """Renames a file in SharePoint.
+
+        Args:
+            sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant to save the file to.
+            sharepoint_site_name (str): Name of the SharePoint site to save the file to.
+            library_name (str): Name of the library to save the file to (URL-encoded).
+            existing_file_path (str): Full file path (relative to root folder) of the file to rename. Don't start with slash.
+            token (str): Bearer token for the request.
+            new_file_name (str): The new file name (including extension).
+        """
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {token}",
+        }
+        body = {"name": new_file_name}
+        drive_id = SharePointUtilities.get_drive_id(sharepoint_tenant_fqdn, sharepoint_site_name, library_name, headers)
+        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/root:/{existing_file_path}"
+        response = requests.patch(url, headers=headers, json=body)
+        response.raise_for_status()
+
+    @staticmethod
     def get_sharepoint_path_segments(sharepoint_url: str):
         """
         Parses a SharePoint URL and extracts the tenant FQDN, site name, and library name.
