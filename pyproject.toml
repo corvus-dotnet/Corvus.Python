@@ -11,6 +11,7 @@ python = "^3.10"
 azure-identity = "^1.15.0"
 docxtpl = "^0.16.7"
 pyodbc = "^5.1.0"
+opentelemetry-api = "^1.29.0"
 pyspark = { version = "^3.3.1", optional = true }
 delta-spark = { version = ">=2.2.0,<4", optional = true }
 azure-communication-email = "^1.0.0"

@@ -2,6 +2,10 @@
 
 from typing import Dict, TypedDict, Literal, Optional
 from corvus_python.auth import get_az_cli_token
+from corvus_python.monitoring import all_methods_start_new_current_span_with_method_name
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
 
 
 class StaticSecretConfig(TypedDict):
@@ -98,6 +102,7 @@ class SecretNotFound(Exception):
         super().__init__(self.message)
 
 
+@all_methods_start_new_current_span_with_method_name(tracer)
 class LocalCredentialUtils:
     """Class which mirrors elements of the mssparkutils.credentials API. Intentionally not a full representation -
     additional methods will be added to it as and when the need arises.
@@ -161,6 +166,7 @@ class LocalCredentialUtils:
         return get_az_cli_token(scope, tenant_id=tenant_id)  # type: ignore
 
 
+@all_methods_start_new_current_span_with_method_name(tracer)
 class LocalEnvUtils:
     """Class which mirrors elements of the mssparkutils.env API. Intentionally not a full representation - additional
     methods will be added to it as and when the need arises.
@@ -185,6 +191,7 @@ class LocalEnvUtils:
         return self.config.get("getWorkspaceName")
 
 
+@all_methods_start_new_current_span_with_method_name(tracer)
 class LocalSparkUtils:
     """Class which mirrors elements of the mssparkutils API. Intentionally not a full representation - additional
     sub-classes will be added to it as and when the need arises.
