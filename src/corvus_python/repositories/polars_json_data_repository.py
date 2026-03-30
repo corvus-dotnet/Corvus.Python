@@ -3,7 +3,7 @@ import logging
 from opentelemetry import trace
 
 from ..storage import StorageConfiguration, DataLakeLayer
-from ..tracing import all_methods_start_new_current_span_with_method_name
+from ..monitoring import all_methods_start_new_current_span_with_method_name
 
 tracer = trace.get_tracer(__name__)
 
@@ -27,9 +27,9 @@ class PolarsJsonDataRepository:
         object_name: str,
         load_type: str,
         snapshot_timestamp: str,
-        include_file_paths: str = None,
-        schema_overrides: dict[str, pl.DataType] = None,
-        schema: dict[str, pl.DataType] = None,
+        include_file_paths: str | None = None,
+        schema_overrides: dict[str, pl.DataType] | None = None,
+        schema: dict[str, pl.DataType] | None = None,
     ) -> pl.DataFrame:
 
         self.logger.info(
@@ -56,7 +56,7 @@ class PolarsJsonDataRepository:
             schema=schema,
         ).collect()
 
-    def _get_json_file_path(self, object_name: str, load_type: str, snapshot_timestamp: str):
+    def _get_json_file_path(self, object_name: str, load_type: str, snapshot_timestamp: str) -> str:
         path = self.file_system_configuration.get_full_path(
             self.data_lake_layer,
             f"{self.base_path}/{load_type}/snapshot_time={snapshot_timestamp}/{object_name}.json",

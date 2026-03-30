@@ -11,7 +11,7 @@ from azure.storage.blob import BlobPrefix, ContainerClient
 from azure.storage.blob._blob_client import BlobClient
 from opentelemetry import trace
 
-from ..tracing import (
+from ..monitoring import (
     add_attributes_to_current_span,
     all_methods_start_new_current_span_with_method_name,
     start_as_current_span_with_method_name,

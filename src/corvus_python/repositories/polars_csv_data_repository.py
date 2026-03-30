@@ -3,7 +3,7 @@ import logging
 from opentelemetry import trace
 
 from ..storage import StorageConfiguration, DataLakeLayer
-from ..tracing import all_methods_start_new_current_span_with_method_name
+from ..monitoring import all_methods_start_new_current_span_with_method_name
 
 tracer = trace.get_tracer(__name__)
 
@@ -22,7 +22,9 @@ class PolarsCsvDataRepository:
         self.data_lake_layer = data_lake_layer
         self.logger = logging.getLogger(__name__)
 
-    def load_csv(self, object_name: str, snapshot_timestamp: str, include_file_paths: str = None) -> pl.DataFrame:
+    def load_csv(
+        self, object_name: str, snapshot_timestamp: str, include_file_paths: str | None = None
+    ) -> pl.DataFrame:
 
         self.logger.info(
             "load_csv - Object name: %s, Snapshot timestamp: %s",

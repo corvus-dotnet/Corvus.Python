@@ -8,7 +8,7 @@ import polars.testing as pl_testing
 from behave.model import Table
 from opentelemetry import trace
 
-from ..tracing import start_as_current_span_with_method_name
+from ..monitoring import start_as_current_span_with_method_name
 
 tracer = trace.get_tracer(__name__)
 
@@ -156,18 +156,18 @@ def _string_to_polars_type(type_name: str) -> pl.DataType:
     """
     type_name_lower = type_name.lower()
     if type_name_lower.startswith("date"):
-        return pl.Date
-    type_map = {
-        "integer": pl.Int64,
-        "long": pl.Int64,
-        "integer8": pl.Int8,
-        "integer32": pl.Int32,
-        "float": pl.Float64,
-        "double": pl.Float64,
-        "boolean": pl.Boolean,
+        return pl.Date()
+    type_map: dict[str, pl.DataType] = {
+        "integer": pl.Int64(),
+        "long": pl.Int64(),
+        "integer8": pl.Int8(),
+        "integer32": pl.Int32(),
+        "float": pl.Float64(),
+        "double": pl.Float64(),
+        "boolean": pl.Boolean(),
         "timestamp": pl.Datetime(time_zone="UTC"),
-        "string": pl.Utf8,
-        "object": pl.Object,
-        "decimal": pl.Decimal,
+        "string": pl.Utf8(),
+        "object": pl.Object(),
+        "decimal": pl.Decimal(),
     }
-    return type_map.get(type_name_lower, pl.Utf8)
+    return type_map.get(type_name_lower, pl.Utf8())

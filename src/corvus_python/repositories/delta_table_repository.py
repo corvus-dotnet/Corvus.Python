@@ -6,7 +6,7 @@ from ..storage import (
     DataLakeLayer,
     StorageConfiguration,
 )
-from ..tracing import all_methods_start_new_current_span_with_method_name
+from ..monitoring import all_methods_start_new_current_span_with_method_name
 from ..repositories import DatabaseDefinition, TableDefinition
 from ..schema import pandera_polars_to_deltalake_schema
 
@@ -64,12 +64,7 @@ class DeltaTableRepository:
 
         return df
 
-    def overwrite_table(
-            self,
-            table_name: str,
-            data: pl.DataFrame | pl.LazyFrame,
-            overwrite_schema: bool = False
-    ):
+    def overwrite_table(self, table_name: str, data: pl.DataFrame | pl.LazyFrame, overwrite_schema: bool = False):
         span = trace.get_current_span()
 
         if isinstance(data, pl.LazyFrame):
@@ -99,11 +94,7 @@ class DeltaTableRepository:
         )
 
     def overwrite_table_with_condition(
-            self,
-            table_name: str,
-            data: pl.DataFrame | pl.LazyFrame,
-            predicate: str,
-            overwrite_schema: bool = False
+        self, table_name: str, data: pl.DataFrame | pl.LazyFrame, predicate: str, overwrite_schema: bool = False
     ):
         span = trace.get_current_span()
 

@@ -3,7 +3,7 @@ from io import BytesIO
 
 from opentelemetry import trace
 
-from ..tracing import (
+from ..monitoring import (
     add_attributes_to_current_span,
     all_methods_start_new_current_span_with_method_name,
 )

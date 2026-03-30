@@ -8,7 +8,7 @@ from fastexcel import read_excel
 
 
 from ..storage import StorageConfiguration, DataLakeLayer
-from ..tracing import all_methods_start_new_current_span_with_method_name
+from ..monitoring import all_methods_start_new_current_span_with_method_name
 
 tracer = trace.get_tracer(__name__)
 
@@ -23,7 +23,7 @@ class PolarsExcelDataRepository:
         self.logger = logging.getLogger(__name__)
 
     def load_excel(
-        self, snapshot_timestamp: str, workbook_name: str, relative_path: str = None
+        self, snapshot_timestamp: str, workbook_name: str, relative_path: str | None = None
     ) -> dict[str, pl.DataFrame]:
 
         self.logger.info("load_excel - Workbook name: %s, Snapshot timestamp: %s", workbook_name, snapshot_timestamp)
@@ -60,7 +60,7 @@ class PolarsExcelDataRepository:
 
         return worksheets
 
-    def get_file_path(self, workbook_name: str, snapshot_timestamp: str, relative_path: str = None) -> str:
+    def get_file_path(self, workbook_name: str, snapshot_timestamp: str, relative_path: str | None = None) -> str:
         base_path = self.base_path if relative_path is None else f"{self.base_path}/{relative_path}"
 
         path = self.file_system_configuration.get_full_path(
