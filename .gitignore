@@ -302,3 +302,6 @@ test-reports/
 pytest-test-results.xml
 behave-test-results.xml
 behave-test-reports-temp/
+.zf/extensions/
+_packages/
+_codeCoverage/

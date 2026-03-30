@@ -1,17 +1,19 @@
 {
-    "python.testing.pytestArgs": [
-        "tests/unit"
-    ],
-    "python.analysis.extraPaths": [
-      "./src/",
-      "./tests/",
-      "./sample_entrypoints/"
-    ],
-    "python.autoComplete.extraPaths": [
-      "./src/",
-      "./tests/",
-      "./sample_entrypoints/"
-    ],
-		"behave-vsc.featuresPath": "tests/bdd",
-		"behave-vsc.runParallel": true
+  "python.testing.pytestArgs": [
+    "tests/unit"
+  ],
+  "python.analysis.extraPaths": [
+    "./src/",
+    "./tests/",
+    "./sample_entrypoints/"
+  ],
+  "python.autoComplete.extraPaths": [
+    "./src/",
+    "./tests/",
+    "./sample_entrypoints/"
+  ],
+  "behave-vsc.featuresPath": "tests/bdd",
+  "behave-vsc.runParallel": true,
+  "python-envs.defaultEnvManager": "ms-python.python:poetry",
+  "python-envs.defaultPackageManager": "ms-python.python:poetry"
 }

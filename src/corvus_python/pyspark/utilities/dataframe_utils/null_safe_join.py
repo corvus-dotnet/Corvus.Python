@@ -1,6 +1,6 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-from typing import List
+from typing import List, Tuple
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import broadcast, expr
 
@@ -8,13 +8,13 @@ from pyspark.sql.functions import broadcast, expr
 def null_safe_join(
     left_df: DataFrame,
     right_df: DataFrame,
-    join_columns: List[tuple],
+    join_columns: List[Tuple[str, str]],
     left_cols_to_select: List[str],
     right_cols_to_select: List[str],
-    join_how: str = 'left',
+    join_how: str = "left",
     broadcast_right_df: bool = False,
-    left_alias: str = 'left',
-    right_alias: str = 'right'
+    left_alias: str = "left",
+    right_alias: str = "right",
 ) -> DataFrame:
     """
     Performs a join between two DataFrames, using the specified join columns and null-safe equality.
