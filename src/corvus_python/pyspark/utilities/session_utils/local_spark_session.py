@@ -5,6 +5,10 @@ from pyspark.sql import SparkSession
 from delta import configure_spark_with_delta_pip
 import os
 from corvus_python.storage import StorageConfiguration, LocalFileSystemStorageConfiguration
+from corvus_python.monitoring import all_methods_start_new_current_span_with_method_name
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
 
 
 CWD = os.path.join(os.getcwd())
@@ -48,6 +52,7 @@ class LocalSparkSessionConfig:
 
 
 @dataclass
+@all_methods_start_new_current_span_with_method_name(tracer)
 class LocalSparkSession:
     """Class to represent a Local Spark session.
     Attributes:
