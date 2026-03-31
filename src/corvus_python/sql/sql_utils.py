@@ -92,7 +92,7 @@ def generate_create_or_alter_view_over_delta_table_ddl(
     with_columns: List[WithColumn] | None = None,
 ) -> str:
     """
-    Generate the DDL statement to create or alter a serverless SQL view over a Delta Lake table.
+    Generate the DDL statement to create or alter a SQL view over a Delta Lake table.
 
 
     Parameters
@@ -164,7 +164,7 @@ def create_or_alter_view_over_delta_table(
     with_columns: List[WithColumn] | None = None,
 ) -> None:
     """
-    Create or alter a serverless SQL view over a Delta Lake table.
+    Create or alter a SQL view over a Delta Lake table.
 
 
     Parameters
