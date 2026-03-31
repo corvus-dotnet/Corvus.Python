@@ -213,6 +213,7 @@ Includes utility functions for working with SQL databases via pyodbc, with AAD t
 | Component Name                                               | Object Type | Description                                                                                                          | Import syntax                                                                                          |
 |--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | <code>get_pyodbc_connection</code>                           | Function    | Opens a pyodbc connection to a Synapse serverless SQL or Fabric SQL Analytics endpoint using AAD tokens.             | <code>from corvus_python.sql import get_pyodbc_connection</code>                                       |
+| <code>get_pyodbc_connection_with_token</code>                | Function    | Opens a pyodbc connection using a pre-acquired AAD token. Useful when running inside Synapse notebooks.              | <code>from corvus_python.sql import get_pyodbc_connection_with_token</code>                            |
 | <code>execute_ddl</code>                                     | Function    | Executes a DDL statement (e.g. CREATE VIEW) using a pyodbc connection.                                               | <code>from corvus_python.sql import execute_ddl</code>                                                 |
 | <code>create_or_alter_view_over_delta_table</code>           | Function    | Creates or alters a SQL view over a Delta Lake table, with support for inferred or explicit column types. | <code>from corvus_python.sql import create_or_alter_view_over_delta_table</code>                       |
 | <code>drop_views_in_schema</code>                            | Function    | Drops all views in a given schema.                                                                                   | <code>from corvus_python.sql import drop_views_in_schema</code>                                        |
@@ -226,6 +227,7 @@ Convenience wrappers specific to Synapse serverless SQL endpoints.
 | Component Name                                               | Object Type | Description                                                                                                          | Import syntax                                                                                          |
 |--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | <code>get_synapse_sql_pyodbc_connection</code>               | Function    | Opens a pyodbc connection to a Synapse serverless SQL endpoint using AAD tokens. Builds the server URL from the workspace name. | <code>from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection</code>           |
+| <code>get_synapse_sql_pyodbc_connection_with_token</code>    | Function    | Opens a pyodbc connection to a Synapse serverless SQL endpoint using a pre-acquired AAD token. Ideal for Synapse notebooks. | <code>from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection_with_token</code> |
 | <code>create_database_if_not_exists</code>                   | Function    | Creates a database if it doesn't already exist. Requires a connection to the master database.                        | <code>from corvus_python.sql.synapse import create_database_if_not_exists</code>                       |
 
 #### `sql.fabric`
@@ -293,5 +295,21 @@ conn = get_synapse_sql_pyodbc_connection(
     workspace_name="myworkspace",
     database="my_database",
     use_managed_identity=False,
+)
+```
+
+#### Usage from a Synapse Notebook
+
+When running inside a Synapse notebook, you can use `mssparkutils` to acquire a token and pass it directly:
+
+```python
+from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection_with_token
+
+token = mssparkutils.credentials.getToken("DW")
+
+conn = get_synapse_sql_pyodbc_connection_with_token(
+    workspace_name="myworkspace",
+    database="my_database",
+    token=token,
 )
 ```
