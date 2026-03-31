@@ -72,3 +72,41 @@ def test_explicit_schema_error():
     table = FakeTable(["a", "b:string"], [["1", "foo"]])
     with pytest.raises(ValueError):
         behave_table_to_polars_dataframe_with_explicit_schema(table)
+
+
+def test_explicit_schema_struct():
+    table = FakeTable(
+        ['data:struct<name:string,age:integer>'],
+        [['{"name": "Alice", "age": 30}'], ['{"name": "Bob", "age": 25}']],
+    )
+    df = behave_table_to_polars_dataframe_with_explicit_schema(table)
+    assert df.schema["data"] == pl.Struct({"name": pl.Utf8, "age": pl.Int64})
+    assert df["data"][0] == {"name": "Alice", "age": 30}
+    assert df["data"][1] == {"name": "Bob", "age": 25}
+
+
+def test_explicit_schema_struct_empty_rows():
+    table = FakeTable(['data:struct<name:string,age:integer>'], [])
+    df = behave_table_to_polars_dataframe_with_explicit_schema(table)
+    assert df.schema["data"] == pl.Struct({"name": pl.Utf8, "age": pl.Int64})
+    assert len(df) == 0
+
+
+def test_explicit_schema_array_of_struct():
+    table = FakeTable(
+        ['items:array<struct<id:integer,label:string>>'],
+        [['[{"id": 1, "label": "a"}, {"id": 2, "label": "b"}]'], ['[{"id": 3, "label": "c"}]']],
+    )
+    df = behave_table_to_polars_dataframe_with_explicit_schema(table)
+    assert df.schema["items"] == pl.List(pl.Struct({"id": pl.Int64, "label": pl.Utf8}))
+    assert df["items"].to_list() == [
+        [{"id": 1, "label": "a"}, {"id": 2, "label": "b"}],
+        [{"id": 3, "label": "c"}],
+    ]
+
+
+def test_explicit_schema_array_of_struct_empty_rows():
+    table = FakeTable(['items:array<struct<id:integer,label:string>>'], [])
+    df = behave_table_to_polars_dataframe_with_explicit_schema(table)
+    assert df.schema["items"] == pl.List(pl.Struct({"id": pl.Int64, "label": pl.Utf8}))
+    assert len(df) == 0

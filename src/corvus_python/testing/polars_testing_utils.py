@@ -40,17 +40,16 @@ def behave_table_to_polars_dataframe_with_explicit_schema(table: Any) -> pl.Data
     rows = [{name: cell for (name, _), cell in zip(cols, row.cells)} for row in table]
 
     if not rows:
-        return pl.DataFrame(schema=schema)
+        df = pl.DataFrame(schema=schema)
     else:
         df = pl.DataFrame(rows)
 
     for name, field_type in cols:
         df = df.with_columns(pl.when(pl.col(name) == "nan").then(None).otherwise(pl.col(name)).alias(name))
         try:
-            if field_type.lower().startswith("struct<"):
-                df = df.with_columns(pl.col(name).str.json_decode().alias(name))
-            elif field_type.lower().startswith("array<struct<"):
-                df = df.with_columns(pl.col(name).str.json_decode().alias(name))
+            if field_type.lower().startswith("struct<") or field_type.lower().startswith("array<"):
+                dtype = _parse_polars_struct_dtype(field_type)
+                df = df.with_columns(pl.col(name).str.json_decode(dtype).alias(name))
             elif field_type.lower() == "date":
                 df = df.with_columns(pl.col(name).str.to_date())
             elif field_type.lower().startswith("date("):
@@ -145,6 +144,46 @@ def compare_polars_dataframes(
         check_row_order=check_row_order,
         check_column_order=not check_like,
     )
+
+
+def _split_type_args(s: str) -> list[str]:
+    """Split comma-separated type arguments, respecting nested angle brackets."""
+    parts = []
+    depth = 0
+    current: list[str] = []
+    for ch in s:
+        if ch == "<":
+            depth += 1
+            current.append(ch)
+        elif ch == ">":
+            depth -= 1
+            current.append(ch)
+        elif ch == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        parts.append("".join(current).strip())
+    return parts
+
+
+def _parse_polars_struct_dtype(type_str: str) -> pl.DataType:
+    """Recursively parse a type string such as 'struct<a:string,b:integer>' or
+    'array<struct<...>>' into a Polars DataType."""
+    type_str = type_str.strip()
+    lower = type_str.lower()
+    if lower.startswith("struct<") and lower.endswith(">"):
+        inner = type_str[7:-1]
+        struct_fields = {}
+        for field in _split_type_args(inner):
+            field_name, field_type = field.split(":", 1)
+            struct_fields[field_name.strip()] = _parse_polars_struct_dtype(field_type.strip())
+        return pl.Struct(struct_fields)
+    if lower.startswith("array<") and lower.endswith(">"):
+        inner = type_str[6:-1]
+        return pl.List(_parse_polars_struct_dtype(inner))
+    return _string_to_polars_type(type_str)
 
 
 def _string_to_polars_type(type_name: str) -> pl.DataType:
