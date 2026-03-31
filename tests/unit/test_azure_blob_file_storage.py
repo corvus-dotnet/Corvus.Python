@@ -1,6 +1,6 @@
 import pytest
 from io import BytesIO
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import MagicMock
 from azure.storage.blob import BlobPrefix
 from corvus_python.storage.azure_blob_file_storage import AzureBlobFileStorage
 

@@ -1,9 +1,8 @@
 import pytest
 import requests
 from io import BytesIO
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 from corvus_python.storage.sharepoint_file_storage import SharePointFileStorage
-from corvus_python.sharepoint import SharePointUtilities
 
 
 @pytest.fixture

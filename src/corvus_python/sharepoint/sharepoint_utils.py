@@ -67,7 +67,8 @@ class SharePointUtilities:
         recipients: list[dict[str, Any]],
         write_permission: bool = False,
     ) -> dict[str, Any]:
-        """Assigns permissions on an item in SharePoint. See https://learn.microsoft.com/en-us/graph/api/driveitem-invite.
+        """Assigns permissions on an item in SharePoint.
+        See https://learn.microsoft.com/en-us/graph/api/driveitem-invite.
 
         Args:
             sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant to save the file to.
@@ -75,7 +76,8 @@ class SharePointUtilities:
             library_name (str): Name of the library to save the file to (URL-encoded).
             item_path (str): Full item path (relative to root folder) to use when saving. Don't start with slash.
             token (str): Bearer token for the request.
-            recipients: Array of driveRecipient objects. See https://learn.microsoft.com/en-us/graph/api/resources/driverecipient
+            recipients: Array of driveRecipient objects.
+            See https://learn.microsoft.com/en-us/graph/api/resources/driverecipient
             write_permission (bool): Boolean indicating whether to assign write permission
 
         Returns:
@@ -109,7 +111,8 @@ class SharePointUtilities:
             sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant to save the file to.
             sharepoint_site_name (str): Name of the SharePoint site to save the file to.
             library_name (str): Name of the library to save the file to (URL-encoded).
-            existing_file_path (str): Full file path (relative to root folder) of the file to rename. Don't start with slash.
+            existing_file_path (str): Full file path (relative to root folder) of the file to rename.
+            Don't start with slash.
             token (str): Bearer token for the request.
             new_file_name (str): The new file name (including extension).
         """
