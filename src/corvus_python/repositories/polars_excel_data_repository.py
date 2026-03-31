@@ -54,10 +54,7 @@ class PolarsExcelDataRepository:
             f = cast(BinaryIO, f)
             workbook_bytes = f.read()
 
-        workbook = read_excel(workbook_bytes)
-        sheet_ids = list(range(len(workbook.sheet_names)))
-
-        worksheets = pl.read_excel(BytesIO(workbook_bytes), sheet_id=sheet_ids, engine="calamine")
+        worksheets = pl.read_excel(BytesIO(workbook_bytes), sheet_id=0, engine="calamine")
 
         return worksheets
 
