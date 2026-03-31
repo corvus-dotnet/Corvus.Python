@@ -1,6 +1,7 @@
 import pyodbc
 from ..sql_utils import (
     get_pyodbc_connection,
+    get_pyodbc_connection_with_token,
 )
 
 
@@ -30,6 +31,28 @@ def get_synapse_sql_pyodbc_connection(
     """
     server = f"{workspace_name}-ondemand.sql.azuresynapse.net"
     return get_pyodbc_connection(server, database, use_managed_identity, client_id)
+
+
+def get_synapse_sql_pyodbc_connection_with_token(
+    workspace_name: str,
+    database: str,
+    token: str,
+) -> pyodbc.Connection:
+    """Open a pyodbc connection to Synapse serverless SQL endpoint using a pre-acquired AAD token.
+
+    Requires ODBC Driver 18 for SQL Server or later.
+
+    Parameters
+    ----------
+    workspace_name:
+        The Synapse workspace name, e.g. "myworkspace".
+    database:
+        The database name.
+    token:
+        A pre-acquired AAD token with audience "https://database.windows.net/.default".
+    """
+    server = f"{workspace_name}-ondemand.sql.azuresynapse.net"
+    return get_pyodbc_connection_with_token(server, database, token)
 
 
 def create_database_if_not_exists(

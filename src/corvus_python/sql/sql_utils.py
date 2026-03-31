@@ -42,7 +42,7 @@ def get_pyodbc_connection(
         Optional user-assigned managed identity client ID. Only used when
         use_managed_identity is True.
     """
-    # 1. Acquire an AAD token for the Azure SQL resource
+    # Acquire an AAD token for the Azure SQL resource
     resource = "https://database.windows.net/.default"
 
     if use_managed_identity:
@@ -50,14 +50,36 @@ def get_pyodbc_connection(
     else:
         credential = DefaultAzureCredential()
 
-    token = credential.get_token(resource)
+    token = credential.get_token(resource).token
 
-    # 2. Pack the token into the bytes format pyodbc expects for
-    #    SQL_COPT_SS_ACCESS_TOKEN (driver-level AAD token injection).
-    token_bytes = token.token.encode("utf-16-le")
+    return get_pyodbc_connection_with_token(server, database, token)
+
+
+def get_pyodbc_connection_with_token(
+    server: str,
+    database: str,
+    token: str,
+) -> pyodbc.Connection:
+    """
+    Open a pyodbc connection to Synapse serverless SQL or Fabric SQL Analytics endpoint using a pre-acquired AAD token.
+        Parameters
+    ----------
+    server:
+        The Synapse serverless endpoint or Fabric SQL Analytics endpoint,
+        e.g. "myworkspace-ondemand.sql.azuresynapse.net"
+            or "<id>.datawarehouse.fabric.microsoft.com".
+    database:
+        The database name.
+    token:
+        An AAD access token with the appropriate scopes/permissions for Azure SQL.
+    """
+
+    # Pack the token into the bytes format pyodbc expects for
+    # SQL_COPT_SS_ACCESS_TOKEN (driver-level AAD token injection).
+    token_bytes = token.encode("utf-16-le")
     token_struct = struct.pack(f"<I{len(token_bytes)}s", len(token_bytes), token_bytes)
 
-    # 3. Build the connection string — no UID/PWD needed
+    # Build the connection string — no UID/PWD needed
     conn_str = (
         f"DRIVER={{ODBC Driver 18 for SQL Server}};"
         f"SERVER={server};"
