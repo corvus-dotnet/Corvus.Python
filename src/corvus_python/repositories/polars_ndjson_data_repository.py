@@ -9,7 +9,7 @@ tracer = trace.get_tracer(__name__)
 
 
 @all_methods_start_new_current_span_with_method_name(tracer)
-class PolarsJsonDataRepository:
+class PolarsNdJsonDataRepository:
     def __init__(
         self,
         file_system_configuration: StorageConfiguration,
@@ -22,7 +22,7 @@ class PolarsJsonDataRepository:
         self.data_lake_layer = data_lake_layer
         self.logger = logging.getLogger(__name__)
 
-    def load_json(
+    def load_ndjson(
         self,
         object_name: str,
         load_type: str,
@@ -33,7 +33,7 @@ class PolarsJsonDataRepository:
     ) -> pl.DataFrame:
 
         self.logger.info(
-            "load_json - Object name: %s, Type: %s, Snapshot timestamp: %s",
+            "load_ndjson - Object name: %s, Type: %s, Snapshot timestamp: %s",
             object_name,
             load_type,
             snapshot_timestamp,
@@ -45,7 +45,7 @@ class PolarsJsonDataRepository:
 
         path = self._get_json_file_path(object_name, load_type, snapshot_timestamp)
 
-        self.logger.info("load_json - Target file path: %s", path)
+        self.logger.info("load_ndjson - Target file path: %s", path)
 
         return pl.scan_ndjson(
             path,
