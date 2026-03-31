@@ -92,6 +92,36 @@ class PolarsDeltaTableRepository:
             storage_options=self.storage_options,
         )
 
+    def overwrite_table_lazy(self, table_name: str, data: pl.LazyFrame, overwrite_schema: bool = False):
+        span = trace.get_current_span()
+
+        span.set_attributes(
+            {
+                "database_name": self.database_definition.name,
+                "table_name": table_name,
+            }
+        )
+
+        self.ensure_initialised()
+
+        path = self._get_table_path(table_name)
+
+        schema = self.pandera_schemas[table_name]
+
+        schema.validate(data, lazy=False)
+
+        if overwrite_schema:
+            delta_write_options = {"schema_mode": "overwrite"}
+        else:
+            delta_write_options = None
+
+        data.sink_delta(
+            path,
+            mode="overwrite",
+            delta_write_options=delta_write_options,
+            storage_options=self.storage_options,
+        )
+
     def overwrite_table_with_condition(
         self, table_name: str, data: pl.DataFrame | pl.LazyFrame, predicate: str, overwrite_schema: bool = False
     ):
