@@ -1,8 +1,8 @@
 import logging
 from typing import BinaryIO, cast
+from io import BytesIO
 import polars as pl
 import fsspec
-from io import BytesIO
 from opentelemetry import trace
 from fastexcel import read_excel
 
@@ -54,9 +54,10 @@ class PolarsExcelDataRepository:
             f = cast(BinaryIO, f)
             workbook_bytes = f.read()
 
-        sheet_names = read_excel(workbook_bytes).sheet_names
+        workbook = read_excel(workbook_bytes)
+        sheet_ids = list(range(len(workbook.sheet_names)))
 
-        worksheets = pl.read_excel(BytesIO(workbook_bytes), sheet_name=sheet_names, engine="calamine")
+        worksheets = pl.read_excel(BytesIO(workbook_bytes), sheet_id=sheet_ids, engine="calamine")
 
         return worksheets
 
