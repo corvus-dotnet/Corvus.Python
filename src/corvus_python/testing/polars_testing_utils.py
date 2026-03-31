@@ -136,14 +136,15 @@ def compare_polars_dataframes(
     Args:
         expected: The expected Polars DataFrame.
         actual: The actual Polars DataFrame.
-        check_like: If True, columns will be reordered to match `expected`.
+        check_like: If True, column order will not be checked.
         check_row_order: If True, row order will be checked.
     """
-    expected = expected.select(sorted(expected.columns)).sort(by=expected.columns)
-    actual = actual.select(sorted(actual.columns)).sort(by=actual.columns)
-    if check_like:
-        actual = actual.select(expected.columns)
-    pl_testing.assert_frame_equal(expected, actual, check_row_order=check_row_order)
+    pl_testing.assert_frame_equal(
+        expected,
+        actual,
+        check_row_order=check_row_order,
+        check_column_order=not check_like,
+    )
 
 
 def _string_to_polars_type(type_name: str) -> pl.DataType:
