@@ -259,7 +259,7 @@ Provides repository classes for reading and writing structured data across vario
 | Component Name | Object Type | Description | Import syntax |
 |---|---|---|---|
 | <code>DatabaseDefinition</code> | Dataclass | Defines a logical database by name and a list of `TableDefinition` instances. | <code>from corvus_python.repositories import DatabaseDefinition</code> |
-| <code>TableDefinition</code> | Dataclass | Defines a table by name, Pandera schema, optional title, and optional `db_schema`. | <code>from corvus_python.repositories import TableDefinition</code> |
+| <code>TableDefinition</code> | Dataclass | Defines a table by name, Pandera schema, optional `title`, and optional `db_schema` (the SQL schema name, e.g. `dbo`, used when creating SQL views over the table in Synapse or Fabric). | <code>from corvus_python.repositories import TableDefinition</code> |
 
 #### `PolarsDeltaTableRepository`
 
