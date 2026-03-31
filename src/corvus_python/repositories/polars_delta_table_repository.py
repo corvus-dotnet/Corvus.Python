@@ -7,14 +7,14 @@ from ..storage import (
     StorageConfiguration,
 )
 from ..monitoring import all_methods_start_new_current_span_with_method_name
-from ..repositories import DatabaseDefinition, TableDefinition
+from . import DatabaseDefinition, TableDefinition
 from ..schema import pandera_polars_to_deltalake_schema
 
 tracer = trace.get_tracer(__name__)
 
 
 @all_methods_start_new_current_span_with_method_name(tracer)
-class DeltaTableRepository:
+class PolarsDeltaTableRepository:
     """
     A repository for managing Delta Lake tables.
 
@@ -31,7 +31,7 @@ class DeltaTableRepository:
         database_definition: DatabaseDefinition,
     ):
         """
-        Initializes the DeltaTableRepository.
+        Initializes the PolarsDeltaTableRepository.
 
         Args:
             storage_configuration: Configuration for accessing storage.
@@ -47,20 +47,19 @@ class DeltaTableRepository:
         self.storage_options = self.storage_configuration.storage_options
         self.pandera_schemas = {table.name: table.schema for table in self.database_definition.tables}
 
-    def read_data(self, table_name: str) -> pl.DataFrame | None:
+    def read_data(self, table_name: str) -> pl.LazyFrame | None:
         """
-        Reads data from a Delta table into a Polars DataFrame.
+        Reads data from a Delta table into a Polars LazyFrame.
 
         Args:
             table_name: The name of the table to read.
 
         Returns:
-            A Polars DataFrame containing the table data, or None if the table is empty.
+            A Polars LazyFrame containing the table data, or None if the table is empty.
         """
         path = self._get_table_path(table_name)
 
-        # TODO: Potential perf improvement: Use `scan_delta` and return LazyFrame instead?
-        df = pl.read_delta(path, storage_options=self.storage_options)
+        df = pl.scan_delta(path, storage_options=self.storage_options)
 
         return df
 
