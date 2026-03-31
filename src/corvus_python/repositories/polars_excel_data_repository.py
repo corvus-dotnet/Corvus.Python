@@ -4,7 +4,6 @@ from io import BytesIO
 import polars as pl
 import fsspec
 from opentelemetry import trace
-from fastexcel import read_excel
 
 
 from ..storage import StorageConfiguration, DataLakeLayer
