@@ -201,3 +201,115 @@ except EmailError as e:
 - The `from_email` must use a configured MailFrom address from your ACS resource
 - Set `email_sending_disabled=True` during development to prevent actual emails from being sent
 - Attachments must be base64-encoded before adding to the `EmailAttachment` object
+
+---
+
+### `sql`
+
+Includes utility functions for working with SQL databases via pyodbc, with AAD token-based authentication. Provides helpers for connecting to Synapse serverless SQL and Fabric SQL Analytics endpoints, managing views over Delta Lake tables, and executing DDL statements.
+
+**⚠️ Note: This module requires ODBC Driver 18 for SQL Server or later.**
+
+| Component Name                                               | Object Type | Description                                                                                                          | Import syntax                                                                                          |
+|--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| <code>get_pyodbc_connection</code>                           | Function    | Opens a pyodbc connection to a Synapse serverless SQL or Fabric SQL Analytics endpoint using AAD tokens.             | <code>from corvus_python.sql import get_pyodbc_connection</code>                                       |
+| <code>get_pyodbc_connection_with_token</code>                | Function    | Opens a pyodbc connection using a pre-acquired AAD token. Useful when running inside Synapse notebooks.              | <code>from corvus_python.sql import get_pyodbc_connection_with_token</code>                            |
+| <code>execute_ddl</code>                                     | Function    | Executes a DDL statement (e.g. CREATE VIEW) using a pyodbc connection.                                               | <code>from corvus_python.sql import execute_ddl</code>                                                 |
+| <code>create_or_alter_view_over_delta_table</code>           | Function    | Creates or alters a SQL view over a Delta Lake table, with support for inferred or explicit column types. | <code>from corvus_python.sql import create_or_alter_view_over_delta_table</code>                       |
+| <code>drop_views_in_schema</code>                            | Function    | Drops all views in a given schema.                                                                                   | <code>from corvus_python.sql import drop_views_in_schema</code>                                        |
+| <code>SelectColumn</code>                                    | Class       | Dataclass representing a column to select, with an optional display title.                                           | <code>from corvus_python.sql import SelectColumn</code>                                                |
+| <code>WithColumn</code>                                      | Class       | Dataclass representing a column with an explicit type for use in OPENROWSET WITH clauses.                            | <code>from corvus_python.sql import WithColumn</code>                                                  |
+
+#### `sql.synapse`
+
+Convenience wrappers specific to Synapse serverless SQL endpoints.
+
+| Component Name                                               | Object Type | Description                                                                                                          | Import syntax                                                                                          |
+|--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| <code>get_synapse_sql_pyodbc_connection</code>               | Function    | Opens a pyodbc connection to a Synapse serverless SQL endpoint using AAD tokens. Builds the server URL from the workspace name. | <code>from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection</code>           |
+| <code>get_synapse_sql_pyodbc_connection_with_token</code>    | Function    | Opens a pyodbc connection to a Synapse serverless SQL endpoint using a pre-acquired AAD token. Ideal for Synapse notebooks. | <code>from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection_with_token</code> |
+| <code>create_database_if_not_exists</code>                   | Function    | Creates a database if it doesn't already exist. Requires a connection to the master database.                        | <code>from corvus_python.sql.synapse import create_database_if_not_exists</code>                       |
+
+#### `sql.fabric`
+
+Convenience wrappers specific to Fabric SQL Analytics endpoints.
+
+| Component Name                                               | Object Type | Description                                                                                                          | Import syntax                                                                                          |
+|--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| <code>get_fabric_sql_pyodbc_connection</code>                | Function    | Opens a pyodbc connection to a Fabric SQL Analytics endpoint using AAD tokens.                                       | <code>from corvus_python.sql.fabric import get_fabric_sql_pyodbc_connection</code>                     |
+
+#### Usage Example
+
+```python
+from corvus_python.sql import (
+    get_pyodbc_connection,
+    create_or_alter_view_over_delta_table,
+    drop_views_in_schema,
+    SelectColumn,
+    WithColumn,
+)
+
+# Connect using DefaultAzureCredential
+conn = get_pyodbc_connection(
+    server="myworkspace-ondemand.sql.azuresynapse.net",
+    database="my_database",
+    use_managed_identity=False,
+)
+
+# Create a view with inferred types
+create_or_alter_view_over_delta_table(
+    conn=conn,
+    schema_name="dbo",
+    view_name="my_view",
+    delta_table_path="abfss://container@storageaccount.dfs.core.windows.net/path/to/table",
+    infer_types=True,
+    select_columns=[
+        SelectColumn(name="id"),
+        SelectColumn(name="full_name", title="Name"),
+    ],
+)
+
+# Create a view with explicit types
+create_or_alter_view_over_delta_table(
+    conn=conn,
+    schema_name="dbo",
+    view_name="my_typed_view",
+    delta_table_path="abfss://container@storageaccount.dfs.core.windows.net/path/to/table",
+    infer_types=False,
+    with_columns=[
+        WithColumn(name="id", type="INT"),
+        WithColumn(name="full_name", type="VARCHAR(200)", title="Name"),
+    ],
+)
+
+# Drop all views in a schema
+drop_views_in_schema(conn, schema_name="dbo")
+```
+
+Or use the Synapse/Fabric-specific helpers:
+
+```python
+from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection
+
+conn = get_synapse_sql_pyodbc_connection(
+    workspace_name="myworkspace",
+    database="my_database",
+    use_managed_identity=False,
+)
+```
+
+#### Usage from a Synapse Notebook
+
+When running inside a Synapse notebook, you can use `mssparkutils` to acquire a token and pass it directly:
+
+```python
+from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection_with_token
+
+token = mssparkutils.credentials.getToken("DW")
+
+conn = get_synapse_sql_pyodbc_connection_with_token(
+    workspace_name="myworkspace",
+    database="my_database",
+    token=token,
+)
+```
