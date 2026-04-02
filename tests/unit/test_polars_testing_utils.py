@@ -1,5 +1,6 @@
 import pytest
 import polars as pl
+from behave.model import Table
 from corvus_python.testing.polars_testing_utils import (
     behave_table_to_polars_dataframe,
     behave_table_to_polars_dataframe_with_explicit_schema,
@@ -11,12 +12,12 @@ from corvus_python.testing.polars_testing_utils import (
 
 
 class FakeRow:
-    def __init__(self, cells):
+    def __init__(self, cells: list[str]):
         self.cells = cells
 
 
-class FakeTable:
-    def __init__(self, headings, rows):
+class FakeTable(Table):
+    def __init__(self, headings: list[str], rows: list[list[str]]):
         self.headings = headings
         self._rows = [FakeRow(row) for row in rows]
 
@@ -57,6 +58,12 @@ def test_compare_polars_dataframes_row_order():
     compare_polars_dataframes(df1, df2, check_like=True, check_row_order=True)
 
 
+def test_compare_polars_dataframes_missing_columns():
+    df1 = pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    df2 = pl.DataFrame({"a": [1, 2]})
+    compare_polars_dataframes(df1, df2, check_like=True, check_row_order=True, ignore_missing_columns=True)
+
+
 def test__string_to_polars_type():
     assert _string_to_polars_type("integer") == pl.Int64
     assert _string_to_polars_type("date") == pl.Date
@@ -76,7 +83,7 @@ def test_explicit_schema_error():
 
 def test_explicit_schema_struct():
     table = FakeTable(
-        ['data:struct<name:string,age:integer>'],
+        ["data:struct<name:string,age:integer>"],
         [['{"name": "Alice", "age": 30}'], ['{"name": "Bob", "age": 25}']],
     )
     df = behave_table_to_polars_dataframe_with_explicit_schema(table)
@@ -86,7 +93,7 @@ def test_explicit_schema_struct():
 
 
 def test_explicit_schema_struct_empty_rows():
-    table = FakeTable(['data:struct<name:string,age:integer>'], [])
+    table = FakeTable(["data:struct<name:string,age:integer>"], [])
     df = behave_table_to_polars_dataframe_with_explicit_schema(table)
     assert df.schema["data"] == pl.Struct({"name": pl.Utf8, "age": pl.Int64})
     assert len(df) == 0
@@ -94,7 +101,7 @@ def test_explicit_schema_struct_empty_rows():
 
 def test_explicit_schema_array_of_struct():
     table = FakeTable(
-        ['items:array<struct<id:integer,label:string>>'],
+        ["items:array<struct<id:integer,label:string>>"],
         [['[{"id": 1, "label": "a"}, {"id": 2, "label": "b"}]'], ['[{"id": 3, "label": "c"}]']],
     )
     df = behave_table_to_polars_dataframe_with_explicit_schema(table)
@@ -106,7 +113,7 @@ def test_explicit_schema_array_of_struct():
 
 
 def test_explicit_schema_array_of_struct_empty_rows():
-    table = FakeTable(['items:array<struct<id:integer,label:string>>'], [])
+    table = FakeTable(["items:array<struct<id:integer,label:string>>"], [])
     df = behave_table_to_polars_dataframe_with_explicit_schema(table)
     assert df.schema["items"] == pl.List(pl.Struct({"id": pl.Int64, "label": pl.Utf8}))
     assert len(df) == 0

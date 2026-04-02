@@ -2,7 +2,7 @@
 Utility functions for testing: Behave table to Polars DataFrame conversions and comparisons.
 """
 
-from typing import Any
+from typing import List
 import polars as pl
 import polars.testing as pl_testing
 from behave.model import Table
@@ -14,7 +14,7 @@ tracer = trace.get_tracer(__name__)
 
 
 @start_as_current_span_with_method_name(tracer)
-def behave_table_to_polars_dataframe(table: Any) -> pl.DataFrame:
+def behave_table_to_polars_dataframe(table: Table) -> pl.DataFrame:
     """
     Converts a Behave table to a Polars DataFrame.
     This function infers the schema if column types are not explicitly provided
@@ -31,13 +31,16 @@ def behave_table_to_polars_dataframe(table: Any) -> pl.DataFrame:
 
 
 @start_as_current_span_with_method_name(tracer)
-def behave_table_to_polars_dataframe_with_explicit_schema(table: Any) -> pl.DataFrame:
-    cols = [h.split(":", 1) for h in table.headings]  # Split only on first colon
+def behave_table_to_polars_dataframe_with_explicit_schema(table: Table) -> pl.DataFrame:
+    cols: List[List[str]] = [h.split(":", 1) for h in table.headings]  # Split only on first colon
     if any(len(c) != 2 for c in cols):
         raise ValueError("field_name:field_type expected in table headings")
 
-    schema = {name: _string_to_polars_type(field_type) for name, field_type in cols}
-    rows = [{name: cell for (name, _), cell in zip(cols, row.cells)} for row in table]
+    cols_tuples = [(name, field_type) for name, field_type in cols]
+    schema = {name: _string_to_polars_type(field_type) for name, field_type in cols_tuples}
+    rows: list[dict[str, str]] = [
+        {name: cell for (name, _), cell in zip(cols_tuples, row.cells)} for row in table  # type: ignore[arg-type]
+    ]
 
     if not rows:
         df = pl.DataFrame(schema=schema)
@@ -93,7 +96,7 @@ def behave_table_to_polars_dataframe_with_explicit_schema(table: Any) -> pl.Data
 
 
 @start_as_current_span_with_method_name(tracer)
-def behave_table_to_polars_dataframe_with_inferred_schema(table: Any) -> pl.DataFrame:
+def behave_table_to_polars_dataframe_with_inferred_schema(table: Table) -> pl.DataFrame:
     """
     Converts a Behave table to a Polars DataFrame with inferred schema.
     Args:
@@ -102,7 +105,7 @@ def behave_table_to_polars_dataframe_with_inferred_schema(table: Any) -> pl.Data
         A Polars DataFrame with inferred schema.
     """
     headings = table.headings
-    rows = [{headings[i]: cell for i, cell in enumerate(row.cells)} for row in table]
+    rows = [{headings[i]: cell for i, cell in enumerate(row.cells)} for row in table]  # type: ignore[list-item]
     for row in rows:
         for key, value in row.items():
             if value == "":
@@ -129,6 +132,7 @@ def compare_polars_dataframes(
     actual: pl.DataFrame,
     check_like: bool = True,
     check_row_order: bool = True,
+    ignore_missing_columns: bool = False,
 ):
     """
     Compares two Polars DataFrames for equality.
@@ -138,6 +142,10 @@ def compare_polars_dataframes(
         check_like: If True, column order will not be checked.
         check_row_order: If True, row order will be checked.
     """
+
+    if ignore_missing_columns:
+        expected = expected.select([col for col in expected.columns if col in actual.columns])
+
     pl_testing.assert_frame_equal(
         expected,
         actual,
@@ -175,7 +183,7 @@ def _parse_polars_struct_dtype(type_str: str) -> pl.DataType:
     lower = type_str.lower()
     if lower.startswith("struct<") and lower.endswith(">"):
         inner = type_str[7:-1]
-        struct_fields = {}
+        struct_fields: dict[str, pl.DataType] = {}
         for field in _split_type_args(inner):
             field_name, field_type = field.split(":", 1)
             struct_fields[field_name.strip()] = _parse_polars_struct_dtype(field_type.strip())
