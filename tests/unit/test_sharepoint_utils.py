@@ -448,3 +448,91 @@ def test_get_drive_id_failure():
 
 
 # endregion
+
+# region Tests for assign_item_permissions
+
+
+def test_assign_item_permissions_success():
+    sharepoint_tenant_fqdn = "example.sharepoint.com"
+    sharepoint_site_name = "site_name"
+    library_name = "library_name"
+    item_path = "folder/file.txt"
+    token = "fake_token"
+    recipients = [{"email": "user@example.com"}]
+    write_permission = True
+    drive_id = "fake_drive_id"
+    mock_response_json = {"status": "success"}
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {token}",
+    }
+
+    with patch.object(SharePointUtilities, "get_drive_id", return_value=drive_id):
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = Mock(status_code=200, json=lambda: mock_response_json)
+            result = SharePointUtilities.assign_item_permissions(
+                sharepoint_tenant_fqdn,
+                sharepoint_site_name,
+                library_name,
+                item_path,
+                token,
+                recipients,
+                write_permission,
+            )
+            mock_post.assert_called_once_with(
+                f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/invite",
+                headers=headers,
+                json={
+                    "requireSignIn": True,
+                    "sendInvitation": False,
+                    "roles": ["write"],
+                    "recipients": recipients,
+                },
+            )
+            assert result == mock_response_json
+
+
+def test_assign_item_permissions_failure():
+    sharepoint_tenant_fqdn = "example.sharepoint.com"
+    sharepoint_site_name = "site_name"
+    library_name = "library_name"
+    item_path = "folder/file.txt"
+    token = "fake_token"
+    recipients = [{"email": "user@example.com"}]
+    write_permission = False
+    drive_id = "fake_drive_id"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {token}",
+    }
+
+    with patch.object(SharePointUtilities, "get_drive_id", return_value=drive_id):
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = Mock(
+                status_code=500, raise_for_status=lambda: (_ for _ in ()).throw(Exception("HTTP error"))
+            )
+            with pytest.raises(Exception):
+                SharePointUtilities.assign_item_permissions(
+                    sharepoint_tenant_fqdn,
+                    sharepoint_site_name,
+                    library_name,
+                    item_path,
+                    token,
+                    recipients,
+                    write_permission,
+                )
+            mock_post.assert_called_once_with(
+                f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{item_path}:/invite",
+                headers=headers,
+                json={
+                    "requireSignIn": True,
+                    "sendInvitation": False,
+                    "roles": ["read"],
+                    "recipients": recipients,
+                },
+            )
+
+
+# endregion
