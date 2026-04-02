@@ -53,15 +53,15 @@ def test_behave_table_to_dictionary_by_row():
 
 
 def test_compare_polars_dataframes_row_order():
-    df1 = pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
-    df2 = pl.DataFrame({"b": ["x", "y"], "a": [1, 2]})
-    compare_polars_dataframes(df1, df2, check_like=True, check_row_order=True)
+    expected = pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    actual = pl.DataFrame({"b": ["x", "y"], "a": [1, 2]})
+    compare_polars_dataframes(expected, actual, check_like=True, check_row_order=True)
 
 
 def test_compare_polars_dataframes_missing_columns():
-    df1 = pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
-    df2 = pl.DataFrame({"a": [1, 2]})
-    compare_polars_dataframes(df1, df2, check_like=True, check_row_order=True, ignore_missing_columns=True)
+    expected = pl.DataFrame({"a": [1, 2]})
+    actual = pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    compare_polars_dataframes(expected, actual, check_like=True, check_row_order=True, ignore_missing_columns=True)
 
 
 def test__string_to_polars_type():

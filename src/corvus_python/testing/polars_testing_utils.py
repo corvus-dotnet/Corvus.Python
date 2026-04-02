@@ -141,10 +141,11 @@ def compare_polars_dataframes(
         actual: The actual Polars DataFrame.
         check_like: If True, column order will not be checked.
         check_row_order: If True, row order will be checked.
+        ignore_missing_columns: If True, columns that are present in expected but missing in actual will be ignored.
     """
 
     if ignore_missing_columns:
-        expected = expected.select([col for col in expected.columns if col in actual.columns])
+        actual = actual.select(expected.columns)
 
     pl_testing.assert_frame_equal(
         expected,
