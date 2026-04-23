@@ -1,9 +1,8 @@
 from typing import Callable
 
 import pyodbc
-from corvus_python.sql import SelectColumn, create_or_alter_view_over_delta_table
-
-from corvus_python.repositories import TableDefinition
+from ...sql import SelectColumn, create_or_alter_view_over_delta_table
+from ...repositories import TableDefinition
 
 
 def create_sql_views_from_tables(
