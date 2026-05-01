@@ -24,7 +24,7 @@ def create_sql_views_from_tables(
         create_or_alter_view_over_delta_table(
             conn,
             schema_name,
-            view_name=table.name,
+            view_name=table.title if table.title is not None else table.name,
             delta_table_path=build_delta_table_path_func(table.name),
             infer_types=True,
             select_columns=select_cols,
