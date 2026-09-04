@@ -438,3 +438,40 @@ conn = get_synapse_sql_pyodbc_connection_with_token(
     token=token,
 )
 ```
+
+### `bdd`
+
+Gherkin-based testing for Power BI semantic models. Analysts write `.feature` files describing how measures, filter context, row level security and the model contract should behave; the package runs them against the live models from a Fabric notebook via Semantic Link (`sempy.fabric.evaluate_dax`), and renders an inline HTML report. behave does the parsing and running; the package adds the Power BI step library, the reporter, offline validation and optional persistence.
+
+The `.feature` files live in a notebook's built-in Resources folder (committed to workspace Git), so they can be edited in Fabric or in a pull request without touching Python. The runner generates behave's `steps/` plumbing into a throwaway directory, so the Resources folder only ever contains `.feature` files.
+
+`sempy` is imported lazily, so `import corvus_python.bdd` works with no Fabric runtime — the query engine is pluggable (`set_query_engine`) and the suite's own tests run offline against a fake.
+
+| Component Name | Object Type | Description | Import syntax |
+|---|---|---|---|
+| <code>run_tests</code> | Function | Run the Gherkin specs under a features directory against live semantic models; returns a <code>RunResult</code>. | <code>from corvus_python.bdd import run_tests</code> |
+| <code>validate_features</code> | Function | Dry run — parse every feature and check every step resolves, without touching a model. Gates PRs in CI with no Fabric capacity. | <code>from corvus_python.bdd import validate_features</code> |
+| <code>RunResult</code> | Class | Outcome of a run: <code>.passed</code>/<code>.failed</code>/<code>.total</code>, <code>.display()</code>, <code>.to_html()</code>, <code>.to_dataframe()</code>, <code>.to_junit_xml()</code>, <code>.raise_if_failed()</code>. | <code>from corvus_python.bdd import RunResult</code> |
+| <code>set_query_engine</code> | Function | Override how DAX is executed — swap in a fake for offline tests. | <code>from corvus_python.bdd import set_query_engine</code> |
+| <code>execute_dax</code> | Function | Execute a DAX query and return a <code>pandas.DataFrame</code>, with per-run caching of identical queries. | <code>from corvus_python.bdd import execute_dax</code> |
+| <code>StepError</code> | Class | Business-readable assertion failure, for use in project-specific steps. | <code>from corvus_python.bdd import StepError</code> |
+| <code>resolve_model</code> | Function | Return <code>(dataset, workspace)</code> for the model the feature points at — for project-specific steps. | <code>from corvus_python.bdd.steps import resolve_model</code> |
+
+#### Usage Example
+
+The wrapper notebook body, in full:
+
+```python
+from corvus_python.bdd import run_tests
+
+result = run_tests(
+    features="builtin/features",
+    tags=tags,                  # e.g. "@smoke and not @slow"
+    workspace=workspace,
+    results_table=results_table,  # optional: append the run to a Delta table
+)
+result.display()
+result.raise_if_failed()
+```
+
+See [`corvus_python/bdd/README.md`](src/corvus_python/bdd/README.md) for the full step vocabulary, the extension guide and deployment notes. Example feature files and a wrapper notebook ship in `corvus_python/bdd/examples/`.
