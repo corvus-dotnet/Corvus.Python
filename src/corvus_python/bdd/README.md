@@ -187,6 +187,13 @@ Environment's resources folder: Environment resources are outside the
 Resources-in-Git support, which would defeat the requirement that analysts edit
 specs under source control.
 
+`behave` and `pandas` are declared runtime dependencies of the package, so
+installing `corvus-python` from the feed brings them with it. Note that a wheel
+**uploaded** to a Fabric Environment as a custom library is not guaranteed to
+have its dependencies resolved — if you deploy that way and see
+`No module named 'behave'`, add `behave` as a public library on the Environment
+too, or install the package from the feed instead of uploading the file.
+
 Attaching a custom Environment adds noticeable Spark session startup time, and
 republishing after a library change takes minutes. That is fine for a nightly
 suite. If a post-refresh smoke test needs to run in seconds, the fallback is a
