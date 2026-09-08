@@ -147,6 +147,52 @@ set_query_engine(my_fake_engine)
 result = run_tests("tests/fixtures")
 ```
 
+## Troubleshooting: "my edits to a .feature file aren't taking effect"
+
+The runner caches nothing. Every `run_tests` call re-reads the directory and
+copies each `.feature` file into a fresh temporary run directory, so a changed
+file is always picked up. If a change appears to be ignored, check in this
+order:
+
+1. **Which files actually ran.** `result.feature_paths` lists them, and the same
+   path is shown in grey on each Feature header in the HTML report.
+
+   ```python
+   print(run_tests("builtin/features").feature_paths)
+   ```
+
+   If these are not the files you edited, the path you passed resolved
+   somewhere else. `run_tests` raises `FileNotFoundError` naming every location
+   it tried rather than falling back to anything — it will never quietly run a
+   different set of specs.
+
+2. **The Resources mount can be stale within a live session.** Fabric surfaces
+   the notebook's built-in Resources folder through a session mount, so a file
+   edited in the Explorer pane (or by a Git sync) while a session is running may
+   not be visible to that session. Restart the session and re-run. To confirm
+   this is what you are seeing, read the file directly rather than through the
+   runner:
+
+   ```python
+   print(open("builtin/features/sales-measures.feature").read())
+   ```
+
+   If that shows the old content, it is the mount, not this package.
+
+3. **The path differs by notebook kind.** `builtin/features` is relative to the
+   session's working directory; the absolute form is
+   `/synfs/nb_resource/builtin/features`. `run_tests` tries both for a relative
+   path, but if your tenant exposes a different mount point, pass it explicitly.
+
+To run the example features shipped in the package — deliberately opt-in, so it
+can never be mistaken for your own specs:
+
+```python
+from corvus_python.bdd import example_features, run_tests
+
+run_tests(example_features())
+```
+
 ## Extending
 
 Project-specific steps go in a new module, never in the shipped step library.

@@ -22,31 +22,59 @@ from behave.runner import Runner
 from . import hooks
 from .results import RunResult, build_run_result
 
-__all__ = ["run_tests", "validate_features"]
+__all__ = ["run_tests", "validate_features", "example_features"]
 
 _SHIM = Path(__file__).parent / "_templates" / "steps_shim.py.txt"
 
-# Package-shipped example features, used when features="builtin/features" is
-# passed outside a Fabric notebook (where that path exists for real).
-_EXAMPLES = Path(__file__).parent / "examples" / "features"
+# Fabric exposes a notebook's built-in Resources folder both relative to the
+# session's working directory and at an absolute mount point. Which one resolves
+# depends on the notebook kind and where the session happens to be running, so a
+# relative path is also tried under each of these.
+_RESOURCE_MOUNTS = ("/synfs/nb_resource",)
+
+
+def example_features() -> Path:
+    """Path to the example feature files shipped inside the package.
+
+    Pass this to :func:`run_tests` explicitly to run the examples. It is
+    deliberately *not* a fallback for an unresolvable path - silently running
+    different specs than the caller asked for hides the mistake behind a report
+    that looks entirely plausible.
+    """
+    return (Path(__file__).parent / "examples" / "features").resolve()
+
+
+def _candidate_paths(features: "str | Path") -> List[Path]:
+    path = Path(features)
+    candidates = [path]
+    if not path.is_absolute():
+        candidates += [Path(mount) / path for mount in _RESOURCE_MOUNTS]
+    return candidates
 
 
 def _resolve_features(features: "str | Path") -> "tuple[Path, List[Path]]":
     """Return ``(root, feature_files)``. ``features`` may be a directory of
     ``.feature`` files or a single ``.feature`` file. ``root`` is the path the
-    caller effectively passed, used to build friendly report paths."""
-    path = Path(features)
-    if path.is_dir():
-        found = sorted(path.rglob("*.feature"))
-        if not found:
-            raise FileNotFoundError(f"No .feature files under '{path}'.")
-        return path.resolve(), found
-    if path.is_file() and path.suffix == ".feature":
-        return path.parent.resolve(), [path]
-    if str(features) == "builtin/features" and _EXAMPLES.is_dir():
-        return _EXAMPLES.resolve(), sorted(_EXAMPLES.rglob("*.feature"))
+    caller effectively passed, used to build friendly report paths.
+
+    Raises ``FileNotFoundError`` naming every location tried if nothing
+    resolves - it never substitutes different feature files.
+    """
+    candidates = _candidate_paths(features)
+    for path in candidates:
+        if path.is_dir():
+            found = sorted(path.rglob("*.feature"))
+            if not found:
+                raise FileNotFoundError(f"No .feature files under '{path}'.")
+            return path.resolve(), found
+        if path.is_file() and path.suffix == ".feature":
+            return path.parent.resolve(), [path]
+    tried = "\n".join(f"  - {p.as_posix()}" for p in candidates)
     raise FileNotFoundError(
-        f"No feature files found at '{path}'. Pass a directory of .feature " f"files or a single .feature file."
+        f"No feature files found for '{features}'. Tried:\n{tried}\n"
+        f"Pass a directory of .feature files or a single .feature file. In a "
+        f"Fabric notebook, check the Resources folder is populated and that the "
+        f"path matches what notebookutils reports."
     )
 
 

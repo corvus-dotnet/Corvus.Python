@@ -18,11 +18,12 @@ from __future__ import annotations
 from .engine import clear_cache, execute_dax, set_query_engine
 from .errors import StepError
 from .results import RunResult
-from .runner import run_tests, validate_features
+from .runner import example_features, run_tests, validate_features
 
 __all__ = [
     "run_tests",
     "validate_features",
+    "example_features",
     "RunResult",
     "set_query_engine",
     "execute_dax",

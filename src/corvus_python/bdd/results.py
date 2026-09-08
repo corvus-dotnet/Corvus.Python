@@ -100,6 +100,18 @@ class RunResult:
     def total(self) -> int:
         return len(self.scenarios)
 
+    @property
+    def feature_paths(self) -> List[str]:
+        """The feature files this run actually executed, in order.
+
+        Worth printing when a change to a feature file does not seem to take
+        effect - it says exactly which files were read.
+        """
+        seen: Dict[str, None] = {}
+        for sc in self.scenarios:
+            seen.setdefault(sc.feature_path, None)
+        return list(seen)
+
     def summary(self) -> str:
         return f"{self.passed}/{self.total} scenarios passed " f"({self.failed} failed) in {self.duration:.1f}s"
 

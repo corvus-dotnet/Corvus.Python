@@ -102,6 +102,63 @@ def test_missing_features_path_raises(fixtures_dir):
         run_tests(fixtures_dir / "nope")
 
 
+def test_unresolvable_builtin_path_raises_and_does_not_run_examples(tmp_path, monkeypatch):
+    """A path that does not resolve must fail loudly.
+
+    Silently falling back to the packaged example features produced a report
+    that looked plausible while executing entirely different specs, which made
+    edits to the real feature files look like they were being ignored.
+    """
+    monkeypatch.chdir(tmp_path)  # no 'builtin/features' here
+    with pytest.raises(FileNotFoundError) as exc:
+        run_tests("builtin/features")
+    message = str(exc.value)
+    assert "builtin/features" in message
+    assert "/synfs/nb_resource" in message  # names every location it tried
+    assert "examples" not in message
+
+
+def test_example_features_are_opt_in(fixtures_dir):
+    from corvus_python.bdd import example_features
+
+    result = run_tests(example_features())
+    assert result.total > 0
+    assert all("examples" in p for p in result.feature_paths)
+
+
+def test_feature_paths_reports_what_actually_ran(fixtures_dir):
+    result = run_tests(fixtures_dir / "model-contract.feature")
+    assert result.feature_paths == [f"{str(fixtures_dir).replace(chr(92), '/')}/model-contract.feature"]
+
+
+def test_edits_to_a_feature_file_are_picked_up_between_runs(tmp_path):
+    """The runner re-reads from disk every call - it caches nothing."""
+    feature = tmp_path / "drift.feature"
+    feature.write_text(
+        "Feature: Drift\n"
+        "  Scenario: first\n"
+        '    Given the semantic model "Contoso Sales"\n'
+        '    Then the model should contain the table "Sales"\n',
+        encoding="utf-8",
+    )
+    first = run_tests(feature)
+    assert [sc.name for sc in first.scenarios] == ["first"]
+
+    feature.write_text(
+        "Feature: Drift\n"
+        "  Scenario: second\n"
+        '    Given the semantic model "Contoso Sales"\n'
+        '    Then the model should contain the table "Product"\n'
+        "\n"
+        "  Scenario: third\n"
+        '    Given the semantic model "Contoso Sales"\n'
+        '    Then the model should contain the table "Date"\n',
+        encoding="utf-8",
+    )
+    second = run_tests(feature)
+    assert [sc.name for sc in second.scenarios] == ["second", "third"]
+
+
 def test_report_shows_friendly_feature_path(fixtures_dir):
     result = run_tests(fixtures_dir / "sales-measures.feature")
     assert result.scenarios[0].feature_path.endswith("sales-measures.feature")
