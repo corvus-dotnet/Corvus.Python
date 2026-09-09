@@ -443,7 +443,7 @@ conn = get_synapse_sql_pyodbc_connection_with_token(
 
 Gherkin-based testing for Power BI semantic models. Analysts write `.feature` files describing how measures, filter context, row level security and the model contract should behave; the package runs them against the live models from a Fabric notebook via Semantic Link (`sempy.fabric.evaluate_dax`), and renders an inline HTML report. behave does the parsing and running; the package adds the Power BI step library, the reporter, offline validation and optional persistence.
 
-The `.feature` files live in a notebook's built-in Resources folder (committed to workspace Git), so they can be edited in Fabric or in a pull request without touching Python. The runner generates behave's `steps/` plumbing into a throwaway directory, so the Resources folder only ever contains `.feature` files.
+The feature files live in a notebook's built-in Resources folder (committed to workspace Git), so they can be edited in Fabric or in a pull request without touching Python. Fabric rejects the `.feature` extension there, so they are stored as `.feature.md`; both extensions are discovered, and the Markdown wrapping (a title, an intro, or a fenced `gherkin` block) is stripped before the Gherkin reaches behave. The runner generates behave's `steps/` plumbing into a throwaway directory, so the Resources folder only ever contains specifications.
 
 `sempy` is imported lazily, so `import corvus_python.bdd` works with no Fabric runtime — the query engine is pluggable (`set_query_engine`) and the suite's own tests run offline against a fake.
 

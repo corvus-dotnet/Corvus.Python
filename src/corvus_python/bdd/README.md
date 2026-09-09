@@ -4,9 +4,10 @@ Executable specifications against Power BI semantic models, run from a Fabric
 notebook, with the `.feature` files stored where analysts can edit them in the
 browser and where Git integration will version them.
 
-Analysts write `.feature` files. Everything else — the parser (behave), the step
-library, DAX execution, reporting and result persistence — lives in this
-package.
+Analysts write `.feature` files (or `.feature.md`, which is what Fabric's
+Resources folder accepts — see below). Everything else — the parser (behave),
+the step library, DAX execution, reporting and result persistence — lives in
+this package.
 
 ## The notebook
 
@@ -28,8 +29,10 @@ result.raise_if_failed()
 `builtin/features` is the notebook's built-in **Resources** folder, which since
 the March 2026 release can be committed to workspace Git along with the
 notebook. It contains `.feature` files and nothing else — no `steps/`, no
-`environment.py`. The runner generates behave's plumbing into a throwaway
-directory at run time, so it never appears in a pull request.
+`environment.py`. Fabric rejects the `.feature` extension there, so in practice
+the files are named `.feature.md`; the runner handles both. It generates
+behave's plumbing into a throwaway directory at run time, so that never appears
+in a pull request.
 
 Queries go through `sempy.fabric.evaluate_dax`, pre-installed in the Fabric
 runtime and authenticating as the notebook's executing identity — no XMLA client
@@ -147,11 +150,64 @@ set_query_engine(my_fake_engine)
 result = run_tests("tests/fixtures")
 ```
 
+## Feature files in Fabric: `.feature.md`
+
+Fabric does not accept `.feature` files in a notebook's built-in Resources
+folder. Store them as **`.feature.md`** instead — `run_tests` and
+`validate_features` discover both extensions, and a directory may mix them.
+
+behave itself only ever sees `.feature`: the runner stages a copy into its
+throwaway run directory and drops the `.md` on the way through, so nothing else
+in the toolchain has to care. The report and `result.feature_paths` still show
+the real `.feature.md` name.
+
+Two shapes work, because both are things people write once the suffix is forced
+on them.
+
+**Plain Gherkin under a Markdown title.** Everything above the first tag line or
+`Feature:` is treated as commentary and dropped — behave rejects free text
+before `Feature:`, so a bare title and intro would otherwise be a parse error.
+
+```markdown
+# Sales measures
+
+These specs are owned by the finance team.
+
+@sales
+Feature: Sales measures
+  Scenario: Total sales for the last closed financial year
+    ...
+```
+
+**Gherkin in a fenced code block.** Use this if you want prose *between*
+scenarios, or other snippets in the same document. A block tagged as
+`gherkin` (or `feature` / `cucumber`) wins outright; if no block is tagged,
+every fenced block is used. Everything outside the fences is discarded.
+
+````markdown
+# Sales model contract
+
+Background reading for reviewers.
+
+```gherkin
+@contract
+Feature: Sales model contract
+  Scenario: The core tables are all present
+    ...
+```
+````
+
+A `.feature` and a `.feature.md` of the same stem in one directory is an error,
+since both would stage to the same name.
+
+Note also that a UTF-8 BOM is stripped on read: behave decodes feature files as
+plain utf8, and files edited through a browser often carry one.
+
 ## Troubleshooting: "my edits to a .feature file aren't taking effect"
 
 The runner caches nothing. Every `run_tests` call re-reads the directory and
-copies each `.feature` file into a fresh temporary run directory, so a changed
-file is always picked up. If a change appears to be ignored, check in this
+copies each `.feature` / `.feature.md` file into a fresh temporary run
+directory, so a changed file is always picked up. If a change appears to be ignored, check in this
 order:
 
 1. **Which files actually ran.** `result.feature_paths` lists them, and the same

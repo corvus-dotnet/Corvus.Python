@@ -1,16 +1,15 @@
 """Orchestrate behave in-process and adapt its output to a :class:`RunResult`.
 
 ``run_tests`` is the whole public entry point. It copies the caller's
-``.feature`` files into a throwaway run directory, drops a generated ``steps/``
-shim next to them, runs behave with output capture and the pretty formatter
-disabled, injects the lifecycle hooks programmatically, and walks the parsed
-model to build the result.
+``.feature`` (or ``.feature.md``) files into a throwaway run directory, drops a
+generated ``steps/`` shim next to them, runs behave with output capture and the
+pretty formatter disabled, injects the lifecycle hooks programmatically, and
+walks the parsed model to build the result.
 """
 
 from __future__ import annotations
 
 import os
-import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -20,6 +19,7 @@ from behave.configuration import Configuration
 from behave.runner import Runner
 
 from . import hooks
+from ._sources import FEATURE_GLOBS, is_feature_file, read_feature, staged_name
 from .results import RunResult, build_run_result
 
 __all__ = ["run_tests", "validate_features", "example_features"]
@@ -54,8 +54,8 @@ def _candidate_paths(features: "str | Path") -> List[Path]:
 
 def _resolve_features(features: "str | Path") -> "tuple[Path, List[Path]]":
     """Return ``(root, feature_files)``. ``features`` may be a directory of
-    ``.feature`` files or a single ``.feature`` file. ``root`` is the path the
-    caller effectively passed, used to build friendly report paths.
+    ``.feature`` / ``.feature.md`` files, or a single such file. ``root`` is the
+    path the caller effectively passed, used to build friendly report paths.
 
     Raises ``FileNotFoundError`` naming every location tried if nothing
     resolves - it never substitutes different feature files.
@@ -63,18 +63,18 @@ def _resolve_features(features: "str | Path") -> "tuple[Path, List[Path]]":
     candidates = _candidate_paths(features)
     for path in candidates:
         if path.is_dir():
-            found = sorted(path.rglob("*.feature"))
+            found = sorted({m for glob in FEATURE_GLOBS for m in path.rglob(glob)})
             if not found:
-                raise FileNotFoundError(f"No .feature files under '{path}'.")
+                raise FileNotFoundError(f"No .feature or .feature.md files under '{path}'.")
             return path.resolve(), found
-        if path.is_file() and path.suffix == ".feature":
+        if path.is_file() and is_feature_file(path):
             return path.parent.resolve(), [path]
     tried = "\n".join(f"  - {p.as_posix()}" for p in candidates)
     raise FileNotFoundError(
         f"No feature files found for '{features}'. Tried:\n{tried}\n"
-        f"Pass a directory of .feature files or a single .feature file. In a "
-        f"Fabric notebook, check the Resources folder is populated and that the "
-        f"path matches what notebookutils reports."
+        f"Pass a directory of .feature / .feature.md files, or a single such "
+        f"file. In a Fabric notebook, check the Resources folder is populated "
+        f"and that the path matches what notebookutils reports."
     )
 
 
@@ -88,15 +88,30 @@ def _stage_run_dir(root: Path, feature_files: List[Path], tmp: Path) -> Dict[str
 
     display_root = str(root).replace("\\", "/")
     path_map: Dict[str, str] = {}
+    staged_from: Dict[str, Path] = {}
     for src in feature_files:
         src = src.resolve()
         try:
             rel = src.relative_to(root)
         except ValueError:
             rel = Path(src.name)
-        dest = run_features / rel
+
+        # behave only discovers *.feature, so a Markdown-wrapped spec is staged
+        # under its un-suffixed name. The report still shows the real file.
+        staged_rel = rel.with_name(staged_name(rel.name))
+        dest = run_features / staged_rel
+
+        clash = staged_from.get(str(dest))
+        if clash is not None:
+            raise ValueError(
+                f"'{rel.as_posix()}' and '{clash.as_posix()}' both stage to "
+                f"'{staged_rel.as_posix()}'. Rename one - a .feature and a "
+                f".feature.md of the same name cannot live side by side."
+            )
+        staged_from[str(dest)] = rel
+
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, dest)
+        dest.write_text(read_feature(src), encoding="utf-8")
         path_map[str(dest)] = f"{display_root}/{rel.as_posix()}"
     return path_map
 

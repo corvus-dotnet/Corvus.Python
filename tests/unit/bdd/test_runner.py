@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from corvus_python.bdd import RunResult, run_tests
@@ -157,6 +159,44 @@ def test_edits_to_a_feature_file_are_picked_up_between_runs(tmp_path):
     )
     second = run_tests(feature)
     assert [sc.name for sc in second.scenarios] == ["second", "third"]
+
+
+def test_markdown_feature_files_are_discovered_and_run(fixtures_dir):
+    """Fabric rejects .feature in Resources, so specs are stored as .feature.md."""
+    result = run_tests(fixtures_dir / "markdown-plain.feature.md")
+    assert result.failed == 0, result.summary()
+    assert [sc.name for sc in result.scenarios] == ["A measure still evaluates"]
+
+
+def test_markdown_feature_with_fenced_gherkin_runs(fixtures_dir):
+    result = run_tests(fixtures_dir / "markdown-fenced.feature.md")
+    assert result.failed == 0, result.summary()
+    assert result.total == 1
+    # prose and the unrelated ```sql block must not reach the parser
+    assert "SELECT 1" not in result.to_html()
+
+
+def test_report_shows_the_real_markdown_filename(fixtures_dir):
+    result = run_tests(fixtures_dir / "markdown-fenced.feature.md")
+    assert result.feature_paths == [f"{str(fixtures_dir).replace(chr(92), '/')}/markdown-fenced.feature.md"]
+
+
+def test_directory_scan_picks_up_both_extensions(fixtures_dir):
+    result = run_tests(fixtures_dir, tags="@markdown")
+    names = {Path(p).name for p in result.feature_paths}
+    assert names == {"markdown-plain.feature.md", "markdown-fenced.feature.md"}
+    assert result.failed == 0, result.summary()
+
+
+def test_clashing_feature_and_markdown_names_raise(tmp_path):
+    body = """\
+Feature: Clash
+  Scenario: One
+"""
+    (tmp_path / "dup.feature").write_text(body, encoding="utf-8")
+    (tmp_path / "dup.feature.md").write_text(body, encoding="utf-8")
+    with pytest.raises(ValueError, match="both stage to"):
+        run_tests(tmp_path)
 
 
 def test_report_shows_friendly_feature_path(fixtures_dir):
