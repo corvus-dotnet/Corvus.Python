@@ -8,7 +8,9 @@ This provides a library of Python utility functions and classes, generally in th
 
 | Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
 |-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
+| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse/Fabric) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
+| <code>get_platform</code>         | Function    | Returns `'fabric'`, `'synapse'` or `'local'`. Requires no Spark session, so it works in Fabric Python notebooks as well as Spark ones. | <code>from corvus_python.spark_utils import get_platform</code> |
+| <code>FabricSparkUtils</code>     | Class       | Fabric implementation of the mssparkutils API, returned by `get_spark_utils()` on Fabric - see [Fabric](#fabric). | <code>from corvus_python.spark_utils import FabricSparkUtils</code> |
 
 
 #### `get_spark_utils()`
@@ -53,6 +55,61 @@ Below shows the current, complete specification of the config file for the suppo
 ```
 
 By default, a file in the root of the current working directory with file name `local-spark-utils-config.json` will be automatically discovered. If the file resides in a different location, and/or has a different file name, then the absolute path must be specified when calling `get_spark_utils()`.
+
+##### Fabric
+
+Microsoft Fabric is detected via `notebookutils.runtime.context["productType"]`, which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
+
+`FabricSparkUtils` presents the same interface as `mssparkutils`, with two deliberate differences:
+
+- **`credentials.getSecretWithLS(linkedService, secret)`** — Fabric has no linked services, so the `linkedService` argument is accepted and ignored. The vault is taken from `key_vault_name` and read with the Azure SDK using a token from `notebookutils`, so the request originates from the notebook process (this matters when the vault is behind a private endpoint).
+- **`env.getWorkspaceName()`** — returns the **Fabric** workspace name, matching `notebookutils`. Note the two platforms disagree about what "workspace" means: on Synapse this call returns the Synapse workspace, on Fabric it returns something like `[DEV] Use Case Name - Data Prep`. Code building a Synapse endpoint should use `EnvironmentUtilities.get_synapse_workspace_name()`, which reads the value from App Configuration on Fabric rather than trusting this call. Using the wrong one produces an invalid endpoint rather than an error.
+
+`credentials.getToken(audience)` accepts the same aliases as the other implementations. Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes, so aliases are translated via `TOKEN_AUDIENCE_SCOPES`; anything already in scope form is passed through unchanged.
+
+Configuration is read from the Fabric variable library, falling back to environment variables. Only the vault name is needed — everything else is reached through Key Vault and App Configuration, exactly as it is when running outside a notebook.
+
+| Variable | Purpose |
+|---|---|
+| `KeyVaultName` | The vault to read secrets from. Equivalent to the environment variable used when running outside a notebook. |
+| `FabricVariableLibrary` | Optional. Names the variable library to read the above from. |
+
+A missing value resolves to `None` rather than raising, because token acquisition needs no configuration at all; the error surfaces when something actually asks for a secret.
+
+```python
+import os
+
+os.environ["KeyVaultName"] = "my-key-vault"  # or set it in the variable library
+```
+
+
+### `environment`
+
+| Component Name                       | Object Type | Description                                                                                                                          | Import syntax                                                          |
+|--------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| <code>EnvironmentUtilities</code>    | Class       | Platform-neutral access to tokens, Key Vault secrets and App Configuration settings. Resolves identically on Synapse notebooks, Fabric notebooks, Azure Container Apps and local development. | <code>from corvus_python.environment import EnvironmentUtilities</code> |
+
+Secrets and tokens are obtained through `get_spark_utils()` on Synapse and Fabric, and through `DefaultAzureCredential` and the Azure SDKs elsewhere. App Configuration settings are labelled with the environment name.
+
+Naming conventions are class attributes, so a project that differs can subclass rather than fork:
+
+| Attribute | Default |
+|---|---|
+| `environment_name_secret` | `EnvironmentName` |
+| `workspace_name_setting` | `WorkspaceName` |
+| `key_vault_linked_service` | `KeyVault` |
+| `key_vault_name_variable` | `KeyVaultName` |
+
+```python
+from corvus_python.environment import EnvironmentUtilities
+
+
+class MyEnvironmentUtilities(EnvironmentUtilities):
+    def get_storage_account_name(self) -> str:
+        return self.get_app_config_setting("StorageAccountName")
+```
+
+Outside a notebook, `KeyVaultName` must be set as an environment variable.
 
 
 ### `pyspark.utilities`

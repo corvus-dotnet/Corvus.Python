@@ -2,6 +2,7 @@
 
 from typing import Dict, TypedDict, Literal, Optional
 from corvus_python.auth import get_az_cli_token
+from corvus_python.auth.audiences import TOKEN_AUDIENCE_SCOPES
 from corvus_python.monitoring import all_methods_start_new_current_span_with_method_name
 from opentelemetry import trace
 
@@ -141,19 +142,7 @@ class LocalCredentialUtils:
                 raise ValueError(f"Unknown secret type {target_secret.get('type')}")
 
     def getToken(self, audience: str) -> str:
-        scopes = {
-            "Storage": "https://storage.azure.com/.default",
-            "Vault": "https://vault.azure.net/.default",
-            "AzureManagement": "https://management.azure.com/.default",
-            "DW": "https://database.windows.net/.default",
-            "Synapse": "https://dev.azuresynapse.net/.default",
-            "DataLakeStore": "https://datalake.azure.net/.default",
-            "DF": "https://datafactory.azure.net/.default",
-            "AzureDataExplorer": "https://kusto.kusto.windows.net/.default",
-            "AzureOSSDB": "https://ossrdbms-aad.database.windows.net/.default",
-        }
-
-        scope = scopes.get(audience)
+        scope = TOKEN_AUDIENCE_SCOPES.get(audience)
 
         if not scope:
             raise ValueError(f"Unsupported audience '{audience}'")
