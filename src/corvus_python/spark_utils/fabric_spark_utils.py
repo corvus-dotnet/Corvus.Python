@@ -30,18 +30,11 @@ def _token_expiry(token: str) -> int:
         return int(time.time()) + 300
 
 
-def _get_variable_library_value(name: str, library_name: Optional[str] = None) -> Optional[str]:
-    """VERIFY THIS CALL SHAPE - the notebookutils.variableLibrary API is unconfirmed.
-    This is the only function that should need adjusting."""
+def _get_variable_library_value(name: str, library_name: str) -> Optional[str]:
     try:
         import notebookutils
 
-        vl = getattr(notebookutils, "variableLibrary", None)
-        if vl is None:
-            return None
-        if library_name:
-            return vl.get(f"$(/**/{library_name}/{name})")
-        return vl.get(name)
+        return notebookutils.variableLibrary.get(f"$(/**/{library_name}/{name})")
     except Exception:
         return None
 
@@ -59,21 +52,24 @@ class FabricSparkUtilsConfig:
     variable_library_name: Optional[str] = None
 
     @classmethod
-    def resolve(cls) -> "FabricSparkUtilsConfig":
-        """Reads the Fabric variable library, falling back to environment variables.
+    def resolve(cls, variable_library_name: Optional[str] = None) -> "FabricSparkUtilsConfig":
+        """Reads the named Fabric variable library, falling back to environment variables.
 
-        Missing values resolve to None rather than raising: token acquisition needs no
-        configuration at all, so failing here would break callers that never touch a secret.
+        The library name is supplied by the consumer. Missing values resolve to None rather than raising:
+        token acquisition needs no configuration at all, so failing here would break callers that never touch a secret.
         The error surfaces at the point of use instead.
         """
-        library = os.environ.get("FabricVariableLibrary")
 
         def lookup(key):
-            return _get_variable_library_value(key, library) or os.environ.get(key)
+            if variable_library_name:
+                value = _get_variable_library_value(key, variable_library_name)
+                if value:
+                    return value
+            return os.environ.get(key)
 
         return cls(
             key_vault_name=lookup("KeyVaultName"),
-            variable_library_name=library,
+            variable_library_name=variable_library_name,
         )
 
 
@@ -104,9 +100,11 @@ class FabricCredentialUtils:
         # Fabric has no linked services; the argument is accepted and ignored so
         # existing callers need no changes. The vault comes from config instead.
         if not self.config.key_vault_name:
+            library = self.config.variable_library_name
+            searched = f"variable library '{library}' or " if library else ""
             raise ValueError(
-                "key_vault_name is not configured. Set KeyVaultName in the Fabric "
-                "variable library or as an environment variable."
+                f"key_vault_name is not configured: KeyVaultName was not found in {searched}"
+                "the KeyVaultName environment variable."
             )
         return self.getSecret(self.config.key_vault_name, secret)
 
@@ -129,7 +127,7 @@ class FabricEnvUtils:
 
 
 class FabricSparkUtils:
-    def __init__(self):
-        self.config = FabricSparkUtilsConfig.resolve()
+    def __init__(self, variable_library_name: Optional[str] = None):
+        self.config = FabricSparkUtilsConfig.resolve(variable_library_name)
         self.credentials = FabricCredentialUtils(self.config)
         self.env = FabricEnvUtils(self.config)

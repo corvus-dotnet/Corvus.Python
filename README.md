@@ -66,19 +66,16 @@ Microsoft Fabric is detected via `notebookutils.runtime.context["productType"]`,
 
 `credentials.getToken(audience)` accepts the same aliases as the other implementations. Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes, so aliases are translated via `TOKEN_AUDIENCE_SCOPES`; anything already in scope form is passed through unchanged.
 
-Configuration is read from the Fabric variable library, falling back to environment variables. Only the vault name is needed — everything else is reached through Key Vault and App Configuration, exactly as it is when running outside a notebook.
+Only the vault name is needed — everything else is reached through Key Vault and App Configuration, exactly as it is when running outside a notebook. `KeyVaultName` is read from a named Fabric variable library when one is given, falling back to the `KeyVaultName` environment variable.
 
-| Variable | Purpose |
-|---|---|
-| `KeyVaultName` | The vault to read secrets from. Equivalent to the environment variable used when running outside a notebook. |
-| `FabricVariableLibrary` | Optional. Names the variable library to read the above from. |
+corvus cannot know what a project calls its variable library, so it never assumes one. Pass `variable_library_name` to `get_spark_utils()`, or set it on an `EnvironmentUtilities` subclass (see [`environment`](#environment)). With no name, only the environment variable is read.
 
-A missing value resolves to `None` rather than raising, because token acquisition needs no configuration at all; the error surfaces when something actually asks for a secret.
+A missing value resolves to `None` rather than raising, because token acquisition needs no configuration at all; the error surfaces when something actually asks for a secret, and says where it looked.
 
 ```python
 import os
 
-os.environ["KeyVaultName"] = "my-key-vault"  # or set it in the variable library
+os.environ["KeyVaultName"] = "my-key-vault"  # when not using a variable library
 ```
 
 
@@ -112,6 +109,9 @@ Naming conventions are class attributes, so a project that differs can subclass 
 | `workspace_name_setting` | `WorkspaceName` |
 | `key_vault_linked_service` | `KeyVault` |
 | `key_vault_name_variable` | `KeyVaultName` |
+| `variable_library_name` | `None` — Fabric only: the variable library to read `KeyVaultName` from |
+
+`variable_library_name` is read when a secret or token is first requested, not at construction. Setting it on the class — `MyEnvironmentUtilities.variable_library_name = "..."` — therefore also reaches instances created earlier, including ones a consuming library builds internally. Setting it on a single instance does not.
 
 ```python
 from corvus_python.environment import EnvironmentUtilities

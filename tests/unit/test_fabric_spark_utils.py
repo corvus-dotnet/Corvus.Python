@@ -12,8 +12,17 @@ def no_variable_library(monkeypatch):
     """Fabric's variable library is unavailable off-platform; force the env var fallback."""
     monkeypatch.setattr(
         "corvus_python.spark_utils.fabric_spark_utils._get_variable_library_value",
-        lambda name, library_name=None: None,
+        lambda name, library_name: None,
     )
+
+
+def _library_returning(monkeypatch, value, calls=None):
+    def fake(name, library_name):
+        if calls is not None:
+            calls.append((name, library_name))
+        return value
+
+    monkeypatch.setattr("corvus_python.spark_utils.fabric_spark_utils._get_variable_library_value", fake)
 
 
 class TestFabricSparkUtilsConfig:
@@ -24,22 +33,40 @@ class TestFabricSparkUtilsConfig:
 
         assert config.key_vault_name == "kv-from-env"
 
-    def test_prefers_the_variable_library_over_the_environment(self, monkeypatch):
+    def test_prefers_the_named_variable_library_over_the_environment(self, monkeypatch):
+        calls = []
         monkeypatch.setenv("KeyVaultName", "kv-from-env")
-        monkeypatch.setattr(
-            "corvus_python.spark_utils.fabric_spark_utils._get_variable_library_value",
-            lambda name, library_name=None: "kv-from-library",
-        )
+        _library_returning(monkeypatch, "kv-from-library", calls)
+
+        config = FabricSparkUtilsConfig.resolve("edap-mdm-vl")
+
+        assert config.key_vault_name == "kv-from-library"
+        assert calls == [("KeyVaultName", "edap-mdm-vl")]
+
+    def test_skips_the_variable_library_when_no_name_is_given(self, monkeypatch):
+        """corvus cannot know what a project calls its library, so it never guesses one."""
+        calls = []
+        monkeypatch.setenv("KeyVaultName", "kv-from-env")
+        _library_returning(monkeypatch, "kv-from-library", calls)
 
         config = FabricSparkUtilsConfig.resolve()
 
-        assert config.key_vault_name == "kv-from-library"
+        assert config.key_vault_name == "kv-from-env"
+        assert calls == []
+
+    def test_falls_back_to_the_environment_when_the_library_lacks_the_value(self, monkeypatch):
+        monkeypatch.setenv("KeyVaultName", "kv-from-env")
+        _library_returning(monkeypatch, None)
+
+        config = FabricSparkUtilsConfig.resolve("edap-mdm-vl")
+
+        assert config.key_vault_name == "kv-from-env"
 
     def test_missing_values_resolve_to_none_rather_than_raising(self, monkeypatch):
         """Token acquisition needs no configuration, so resolution must not fail here."""
         monkeypatch.delenv("KeyVaultName", raising=False)
 
-        config = FabricSparkUtilsConfig.resolve()
+        config = FabricSparkUtilsConfig.resolve("edap-mdm-vl")
 
         assert config.key_vault_name is None
 
@@ -51,6 +78,14 @@ class TestFabricSparkUtils:
         utils = FabricSparkUtils()
 
         with pytest.raises(ValueError, match="key_vault_name is not configured"):
+            utils.credentials.getSecretWithLS("KeyVault", "AnySecret")
+
+    def test_get_secret_with_ls_error_names_the_library_it_searched(self, monkeypatch):
+        monkeypatch.delenv("KeyVaultName", raising=False)
+
+        utils = FabricSparkUtils("edap-mdm-vl")
+
+        with pytest.raises(ValueError, match="variable library 'edap-mdm-vl'"):
             utils.credentials.getSecretWithLS("KeyVault", "AnySecret")
 
     def test_env_workspace_name_returns_the_fabric_workspace(self, monkeypatch):

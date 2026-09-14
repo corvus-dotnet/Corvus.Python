@@ -1,6 +1,7 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
 import os
+from typing import Optional
 
 from azure.appconfiguration import AzureAppConfigurationClient
 from azure.identity import DefaultAzureCredential
@@ -24,6 +25,10 @@ class EnvironmentUtilities:
     workspace_name_setting = "WorkspaceName"
     key_vault_linked_service = "KeyVault"
     key_vault_name_variable = "KeyVaultName"
+    # Fabric variable library to read bootstrap values from; None reads environment variables only.
+    # Read at first use rather than construction, so a class-level override also reaches
+    # instances created earlier - including ones a consuming library builds internally.
+    variable_library_name: Optional[str] = None
 
     def __init__(self) -> None:
         self._platform: str = get_platform()
@@ -40,7 +45,7 @@ class EnvironmentUtilities:
 
     def _get_spark_utils(self):
         if self._spark_utils is None:
-            self._spark_utils = get_spark_utils()
+            self._spark_utils = get_spark_utils(variable_library_name=self.variable_library_name)
         return self._spark_utils
 
     def get_environment_name(self) -> str:
