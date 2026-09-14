@@ -9,7 +9,6 @@ This provides a library of Python utility functions and classes, generally in th
 | Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
 |-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
 | <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse/Fabric) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
-| <code>get_platform</code>         | Function    | Returns `'fabric'`, `'synapse'` or `'local'`. Requires no Spark session, so it works in Fabric Python notebooks as well as Spark ones. | <code>from corvus_python.spark_utils import get_platform</code> |
 | <code>FabricSparkUtils</code>     | Class       | Fabric implementation of the mssparkutils API, returned by `get_spark_utils()` on Fabric - see [Fabric](#fabric). | <code>from corvus_python.spark_utils import FabricSparkUtils</code> |
 
 
@@ -81,6 +80,20 @@ import os
 
 os.environ["KeyVaultName"] = "my-key-vault"  # or set it in the variable library
 ```
+
+
+### `platform`
+
+| Component Name                          | Object Type | Description                                                                                                   | Import syntax                                                            |
+|-----------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| <code>get_platform</code>               | Function    | Returns `'fabric'`, `'synapse'` or `'local'`. Requires no Spark session, so it works in Fabric Python notebooks as well as Spark ones. Has no side effects. | <code>from corvus_python.platform import get_platform</code>             |
+| <code>configure_tls_trust_store</code>  | Function    | Points Rust-based TLS clients at a CA bundle they can parse. No-op off Fabric. See [TLS on Fabric](#tls-on-fabric). | <code>from corvus_python.platform import configure_tls_trust_store</code> |
+
+#### TLS on Fabric
+
+Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
+
+`configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
 
 
 ### `environment`

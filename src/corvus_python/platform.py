@@ -58,9 +58,6 @@ def get_platform() -> str:
 
     ctx = getattr(notebookutils.runtime, "context", None) or {}
     if ctx.get("productType") == "Fabric":
-
-        # Explicitly call this here for Fabric (which is where it's needed)
-        configure_tls_trust_store()
         return FABRIC
 
     # Only reachable once Fabric is positively excluded: Fabric Spark sessions

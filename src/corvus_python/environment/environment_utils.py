@@ -6,7 +6,7 @@ from azure.appconfiguration import AzureAppConfigurationClient
 from azure.identity import DefaultAzureCredential
 
 from corvus_python.auth.audiences import TOKEN_AUDIENCE_SCOPES
-from corvus_python.spark_utils.platform import FABRIC, SYNAPSE, get_platform
+from corvus_python.platform import FABRIC, SYNAPSE, get_platform
 from corvus_python.spark_utils import get_spark_utils
 
 

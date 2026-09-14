@@ -4,7 +4,7 @@ import os
 import json
 from corvus_python.spark_utils.fabric_spark_utils import FabricSparkUtils
 from corvus_python.spark_utils.local_spark_utils import LocalSparkUtils
-from corvus_python.spark_utils.platform import FABRIC, SYNAPSE, get_platform
+from corvus_python.platform import FABRIC, SYNAPSE, get_platform
 
 
 def get_spark_utils(

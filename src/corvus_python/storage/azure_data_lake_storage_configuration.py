@@ -1,6 +1,8 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
 from typing import Any, Dict, Optional
+
+from ..platform import configure_tls_trust_store
 from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 
@@ -22,6 +24,8 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
 
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
+        # object_store builds its TLS config once per process, so this must precede any request.
+        configure_tls_trust_store()
 
     def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
         return f"abfss://{layer}@{self.storage_account_name}.dfs.core.windows.net/{path}"
@@ -49,6 +53,8 @@ class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
         self.file_system_name = file_system_name
+        # object_store builds its TLS config once per process, so this must precede any request.
+        configure_tls_trust_store()
 
     def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
         return f"abfss://{self.file_system_name}@{self.storage_account_name}.dfs.core.windows.net/{layer}/{path}"
