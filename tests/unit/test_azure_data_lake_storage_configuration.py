@@ -27,7 +27,10 @@ class TestAzureDataLakeFileSystemPerLayerConfiguration:
     def test_builds_a_file_system_per_layer_path(self, tls_calls):
         config = AzureDataLakeFileSystemPerLayerConfiguration("acct")
 
-        assert config.get_full_path(DataLakeLayer.SILVER, "db/table") == "abfss://silver@acct.dfs.core.windows.net/db/table"
+        assert (
+            config.get_full_path(DataLakeLayer.SILVER, "db/table")
+            == "abfss://silver@acct.dfs.core.windows.net/db/table"
+        )
 
 
 class TestAzureDataLakeSingleFileSystemConfiguration:
