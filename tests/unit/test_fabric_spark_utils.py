@@ -38,10 +38,10 @@ class TestFabricSparkUtilsConfig:
         monkeypatch.setenv("KeyVaultName", "kv-from-env")
         _library_returning(monkeypatch, "kv-from-library", calls)
 
-        config = FabricSparkUtilsConfig.resolve("edap-mdm-vl")
+        config = FabricSparkUtilsConfig.resolve("library_name")
 
         assert config.key_vault_name == "kv-from-library"
-        assert calls == [("KeyVaultName", "edap-mdm-vl")]
+        assert calls == [("KeyVaultName", "library_name")]
 
     def test_skips_the_variable_library_when_no_name_is_given(self, monkeypatch):
         """corvus cannot know what a project calls its library, so it never guesses one."""
@@ -58,7 +58,7 @@ class TestFabricSparkUtilsConfig:
         monkeypatch.setenv("KeyVaultName", "kv-from-env")
         _library_returning(monkeypatch, None)
 
-        config = FabricSparkUtilsConfig.resolve("edap-mdm-vl")
+        config = FabricSparkUtilsConfig.resolve("library_name")
 
         assert config.key_vault_name == "kv-from-env"
 
@@ -66,7 +66,7 @@ class TestFabricSparkUtilsConfig:
         """Token acquisition needs no configuration, so resolution must not fail here."""
         monkeypatch.delenv("KeyVaultName", raising=False)
 
-        config = FabricSparkUtilsConfig.resolve("edap-mdm-vl")
+        config = FabricSparkUtilsConfig.resolve("library_name")
 
         assert config.key_vault_name is None
 
@@ -83,27 +83,24 @@ class TestFabricSparkUtils:
     def test_get_secret_with_ls_error_names_the_library_it_searched(self, monkeypatch):
         monkeypatch.delenv("KeyVaultName", raising=False)
 
-        utils = FabricSparkUtils("edap-mdm-vl")
+        utils = FabricSparkUtils("library_name")
 
-        with pytest.raises(ValueError, match="variable library 'edap-mdm-vl'"):
+        with pytest.raises(ValueError, match="variable library 'library_name'"):
             utils.credentials.getSecretWithLS("KeyVault", "AnySecret")
 
     def test_env_workspace_name_returns_the_fabric_workspace(self, monkeypatch):
         """env.getWorkspaceName mirrors notebookutils and reports the *Fabric* workspace.
 
-        The Synapse workspace is a separate concept, read from App Configuration by
-        EnvironmentUtilities.get_synapse_workspace_name(); conflating the two produces an
-        invalid Synapse endpoint.
+        That is not the Synapse workspace: callers building a Synapse endpoint must read that
+        name from configuration, or they produce an invalid endpoint.
         """
         import notebookutils
 
-        monkeypatch.setattr(
-            notebookutils.runtime, "context", {"currentWorkspaceName": "[DEV] MDM - Data Prep"}
-        )
+        monkeypatch.setattr(notebookutils.runtime, "context", {"currentWorkspaceName": "[DEV] Data Prep"})
 
         utils = FabricSparkUtils()
 
-        assert utils.env.getWorkspaceName() == "[DEV] MDM - Data Prep"
+        assert utils.env.getWorkspaceName() == "[DEV] Data Prep"
 
     def test_get_token_maps_aliases_to_full_resource_scopes(self, monkeypatch):
         """Fabric rejects the short keyword forms but accepts full resource scopes."""

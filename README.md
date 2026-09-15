@@ -62,13 +62,13 @@ Microsoft Fabric is detected via `notebookutils.runtime.context["productType"]`,
 `FabricSparkUtils` presents the same interface as `mssparkutils`, with two deliberate differences:
 
 - **`credentials.getSecretWithLS(linkedService, secret)`** — Fabric has no linked services, so the `linkedService` argument is accepted and ignored. The vault is taken from `key_vault_name` and read with the Azure SDK using a token from `notebookutils`, so the request originates from the notebook process (this matters when the vault is behind a private endpoint).
-- **`env.getWorkspaceName()`** — returns the **Fabric** workspace name, matching `notebookutils`. Note the two platforms disagree about what "workspace" means: on Synapse this call returns the Synapse workspace, on Fabric it returns something like `[DEV] Use Case Name - Data Prep`. Code building a Synapse endpoint should use `EnvironmentUtilities.get_synapse_workspace_name()`, which reads the value from App Configuration on Fabric rather than trusting this call. Using the wrong one produces an invalid endpoint rather than an error.
+- **`env.getWorkspaceName()`** — returns the **Fabric** workspace name, matching `notebookutils`. Note the two platforms disagree about what "workspace" means: on Synapse this call returns the Synapse workspace, on Fabric it returns something like `[DEV] Use Case Name - Data Prep`. Code building a Synapse endpoint must read the Synapse workspace name from configuration instead of trusting this call — using the wrong one produces an invalid endpoint rather than an error.
 
 `credentials.getToken(audience)` accepts the same aliases as the other implementations. Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes, so aliases are translated via `TOKEN_AUDIENCE_SCOPES`; anything already in scope form is passed through unchanged.
 
 Only the vault name is needed — everything else is reached through Key Vault and App Configuration, exactly as it is when running outside a notebook. `KeyVaultName` is read from a named Fabric variable library when one is given, falling back to the `KeyVaultName` environment variable.
 
-corvus cannot know what a project calls its variable library, so it never assumes one. Pass `variable_library_name` to `get_spark_utils()`, or set it on an `EnvironmentUtilities` subclass (see [`environment`](#environment)). With no name, only the environment variable is read.
+corvus cannot know what a project calls its variable library, so it never assumes one. Pass `variable_library_name` to `get_spark_utils()`; with no name, only the environment variable is read.
 
 A missing value resolves to `None` rather than raising, because token acquisition needs no configuration at all; the error surfaces when something actually asks for a secret, and says where it looked.
 
@@ -91,38 +91,6 @@ os.environ["KeyVaultName"] = "my-key-vault"  # when not using a variable library
 Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
 
 `configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
-
-
-### `environment`
-
-| Component Name                       | Object Type | Description                                                                                                                          | Import syntax                                                          |
-|--------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| <code>EnvironmentUtilities</code>    | Class       | Platform-neutral access to tokens, Key Vault secrets and App Configuration settings. Resolves identically on Synapse notebooks, Fabric notebooks, Azure Container Apps and local development. | <code>from corvus_python.environment import EnvironmentUtilities</code> |
-
-Secrets and tokens are obtained through `get_spark_utils()` on Synapse and Fabric, and through `DefaultAzureCredential` and the Azure SDKs elsewhere. App Configuration settings are labelled with the environment name.
-
-Naming conventions are class attributes, so a project that differs can subclass rather than fork:
-
-| Attribute | Default |
-|---|---|
-| `environment_name_secret` | `EnvironmentName` |
-| `workspace_name_setting` | `WorkspaceName` |
-| `key_vault_linked_service` | `KeyVault` |
-| `key_vault_name_variable` | `KeyVaultName` |
-| `variable_library_name` | `None` — Fabric only: the variable library to read `KeyVaultName` from |
-
-`variable_library_name` is read when a secret or token is first requested, not at construction. Setting it on the class — `MyEnvironmentUtilities.variable_library_name = "..."` — therefore also reaches instances created earlier, including ones a consuming library builds internally. Setting it on a single instance does not.
-
-```python
-from corvus_python.environment import EnvironmentUtilities
-
-
-class MyEnvironmentUtilities(EnvironmentUtilities):
-    def get_storage_account_name(self) -> str:
-        return self.get_app_config_setting("StorageAccountName")
-```
-
-Outside a notebook, `KeyVaultName` must be set as an environment variable.
 
 
 ### `pyspark.utilities`
