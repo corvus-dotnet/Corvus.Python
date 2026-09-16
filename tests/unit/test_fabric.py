@@ -2,7 +2,7 @@ import base64
 import json
 import time
 
-from corvus_python.fabric import FabricTokenCredential, get_variable_library_value
+from corvus_python.fabric import FabricTokenCredential
 
 
 def _jwt(expires_on: int) -> str:
@@ -44,31 +44,3 @@ class TestFabricTokenCredential:
 
         assert token.token == "not-a-jwt"
         assert token.expires_on > int(time.time())
-
-
-class TestGetVariableLibraryValue:
-    def test_reads_the_library_qualified_reference(self, monkeypatch):
-        requested = []
-
-        class FakeVariableLibrary:
-            @staticmethod
-            def get(reference):
-                requested.append(reference)
-                return "kv-name"
-
-        monkeypatch.setattr("notebookutils.variableLibrary", FakeVariableLibrary, raising=False)
-
-        assert get_variable_library_value("KeyVaultName", "edap-mdm-vl") == "kv-name"
-        assert requested == ["$(/**/edap-mdm-vl/KeyVaultName)"]
-
-    def test_returns_none_when_the_library_cannot_be_read(self, monkeypatch):
-        """Off Fabric there is no variableLibrary at all, and callers fall back to env vars."""
-
-        class FakeVariableLibrary:
-            @staticmethod
-            def get(reference):
-                raise RuntimeError("no such library")
-
-        monkeypatch.setattr("notebookutils.variableLibrary", FakeVariableLibrary, raising=False)
-
-        assert get_variable_library_value("KeyVaultName", "edap-mdm-vl") is None

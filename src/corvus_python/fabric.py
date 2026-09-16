@@ -3,7 +3,6 @@
 import base64
 import json
 import time
-from typing import Optional
 
 
 class FabricTokenCredential:
@@ -25,20 +24,6 @@ class FabricTokenCredential:
         # executing identity only and cannot satisfy a CAE challenge.
         token = notebookutils.credentials.getToken(scopes[0])
         return AccessToken(token, _token_expiry(token))
-
-
-def get_variable_library_value(name: str, library_name: str) -> Optional[str]:
-    """Reads a variable from a named Fabric variable library.
-
-    Returns None when the value or the library cannot be read, including off Fabric, so callers
-    can fall back to environment variables.
-    """
-    try:
-        import notebookutils
-
-        return notebookutils.variableLibrary.get(f"$(/**/{library_name}/{name})")
-    except Exception:
-        return None
 
 
 def _token_expiry(token: str) -> int:

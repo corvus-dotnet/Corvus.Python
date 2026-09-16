@@ -61,7 +61,9 @@ On Fabric, `get_spark_utils()` returns Fabric's native `notebookutils`, which wo
 - **No linked services.** `credentials.getSecretWithLS` does not exist; use `credentials.getSecret(vault_name, secret_name)`.
 - **Tokens need full resource scopes.** `credentials.getToken("Synapse")` is rejected; pass `https://dev.azuresynapse.net/.default` instead (see `TOKEN_AUDIENCE_SCOPES`).
 
-Use [`get_platform()`](#platform) where behaviour needs to differ, and the primitives in [`fabric`](#fabric) to use the Azure SDKs from a Fabric notebook.
+Fabric-only APIs are available on the same object — for example, variable libraries via `variableLibrary.get("$(/**/<library>/<variable>)")`.
+
+Use [`get_platform()`](#platform) where behaviour needs to differ, and [`FabricTokenCredential`](#fabric) to use the Azure SDKs from a Fabric notebook.
 
 
 ### `platform`
@@ -83,7 +85,6 @@ Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.tr
 | Component Name                           | Object Type | Description                                                                                             | Import syntax                                                                |
 |------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
 | <code>FabricTokenCredential</code>       | Class       | azure-identity compatible credential backed by `notebookutils`, for using the Azure SDKs inside a Fabric notebook. | <code>from corvus_python.fabric import FabricTokenCredential</code>          |
-| <code>get_variable_library_value</code>  | Function    | Reads a variable from a named Fabric variable library, returning `None` when it cannot be read.          | <code>from corvus_python.fabric import get_variable_library_value</code>     |
 
 Fabric is detected via `notebookutils.runtime.context["productType"]` (see [`platform`](#platform)), which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
 
@@ -91,10 +92,9 @@ Fabric is detected via `notebookutils.runtime.context["productType"]` (see [`pla
 
 ```python
 from azure.keyvault.secrets import SecretClient
-from corvus_python.fabric import FabricTokenCredential, get_variable_library_value
+from corvus_python.fabric import FabricTokenCredential
 
-vault = get_variable_library_value("KeyVaultName", "my-variable-library")
-client = SecretClient(f"https://{vault}.vault.azure.net/", FabricTokenCredential())
+client = SecretClient("https://my-key-vault.vault.azure.net/", FabricTokenCredential())
 ```
 
 Composition is left to the consumer: corvus cannot know what a project calls its variable library, which vault it uses, or how it maps secrets to configuration.
