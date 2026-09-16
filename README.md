@@ -8,8 +8,7 @@ This provides a library of Python utility functions and classes, generally in th
 
 | Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
 |-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse/Fabric) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
-| <code>FabricSparkUtils</code>     | Class       | Fabric implementation of the mssparkutils API, returned by `get_spark_utils()` on Fabric - see [Fabric](#fabric). | <code>from corvus_python.spark_utils import FabricSparkUtils</code> |
+| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse) based on mssparkutils API. Raises on Fabric - see [Fabric](#fabric). <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
 
 
 #### `get_spark_utils()`
@@ -57,26 +56,7 @@ By default, a file in the root of the current working directory with file name `
 
 ##### Fabric
 
-Microsoft Fabric is detected via `notebookutils.runtime.context["productType"]`, which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
-
-`FabricSparkUtils` presents the same interface as `mssparkutils`, with two deliberate differences:
-
-- **`credentials.getSecretWithLS(linkedService, secret)`** — Fabric has no linked services, so the `linkedService` argument is accepted and ignored. The vault is taken from `key_vault_name` and read with the Azure SDK using a token from `notebookutils`, so the request originates from the notebook process (this matters when the vault is behind a private endpoint).
-- **`env.getWorkspaceName()`** — returns the **Fabric** workspace name, matching `notebookutils`. Note the two platforms disagree about what "workspace" means: on Synapse this call returns the Synapse workspace, on Fabric it returns something like `[DEV] Use Case Name - Data Prep`. Code building a Synapse endpoint must read the Synapse workspace name from configuration instead of trusting this call — using the wrong one produces an invalid endpoint rather than an error.
-
-`credentials.getToken(audience)` accepts the same aliases as the other implementations. Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes, so aliases are translated via `TOKEN_AUDIENCE_SCOPES`; anything already in scope form is passed through unchanged.
-
-Only the vault name is needed — everything else is reached through Key Vault and App Configuration, exactly as it is when running outside a notebook. `KeyVaultName` is read from a named Fabric variable library when one is given, falling back to the `KeyVaultName` environment variable.
-
-corvus cannot know what a project calls its variable library, so it never assumes one. Pass `variable_library_name` to `get_spark_utils()`; with no name, only the environment variable is read.
-
-A missing value resolves to `None` rather than raising, because token acquisition needs no configuration at all; the error surfaces when something actually asks for a secret, and says where it looked.
-
-```python
-import os
-
-os.environ["KeyVaultName"] = "my-key-vault"  # when not using a variable library
-```
+`get_spark_utils()` raises `NotImplementedError` on Fabric. Fabric has no linked services, and its workspace is not a Synapse workspace, so there is no faithful `mssparkutils` implementation to return — a mirror of one produces plausible wrong answers rather than errors. Use the primitives in [`fabric`](#fabric) with the Azure SDKs instead.
 
 
 ### `platform`
@@ -91,6 +71,28 @@ os.environ["KeyVaultName"] = "my-key-vault"  # when not using a variable library
 Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
 
 `configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
+
+
+### `fabric`
+
+| Component Name                           | Object Type | Description                                                                                             | Import syntax                                                                |
+|------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| <code>FabricTokenCredential</code>       | Class       | azure-identity compatible credential backed by `notebookutils`, for using the Azure SDKs inside a Fabric notebook. | <code>from corvus_python.fabric import FabricTokenCredential</code>          |
+| <code>get_variable_library_value</code>  | Function    | Reads a variable from a named Fabric variable library, returning `None` when it cannot be read.          | <code>from corvus_python.fabric import get_variable_library_value</code>     |
+
+Fabric is detected via `notebookutils.runtime.context["productType"]` (see [`platform`](#platform)), which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
+
+`DefaultAzureCredential` cannot authenticate inside a Fabric notebook: there is no IMDS endpoint and no Azure CLI. `FabricTokenCredential` fills that gap. It passes the requested scope straight through, because Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes. Issuing the request from the notebook process also means it traverses any managed private endpoint the workspace has.
+
+```python
+from azure.keyvault.secrets import SecretClient
+from corvus_python.fabric import FabricTokenCredential, get_variable_library_value
+
+vault = get_variable_library_value("KeyVaultName", "my-variable-library")
+client = SecretClient(f"https://{vault}.vault.azure.net/", FabricTokenCredential())
+```
+
+Composition is left to the consumer: corvus cannot know what a project calls its variable library, which vault it uses, or how it maps secrets to configuration.
 
 
 ### `pyspark.utilities`

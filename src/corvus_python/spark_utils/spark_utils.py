@@ -2,35 +2,36 @@
 
 import os
 import json
-from typing import Optional
-from corvus_python.spark_utils.fabric_spark_utils import FabricSparkUtils
 from corvus_python.spark_utils.local_spark_utils import LocalSparkUtils
 from corvus_python.platform import FABRIC, SYNAPSE, get_platform
 
 
 def get_spark_utils(
     local_spark_utils_config_file_path: str = f"{os.getcwd()}/local-spark-utils-config.json",
-    variable_library_name: Optional[str] = None,
 ):
     """Returns spark utility functions corresponding to the current environment.
 
     Args:
         local_spark_utils_config_file_path (str): Path to the config used to instantiate the `LocalSparkUtils` class.
             Defaults to a file located in the root of the current working directory.
-        variable_library_name (Optional[str]): On Fabric, the variable library to read bootstrap values from,
-            falling back to environment variables. With no name, only environment variables are read.
-            Ignored on other platforms.
 
     Returns:
         object: An instance of the spark utility functions.
 
     Raises:
+        NotImplementedError: If called on Fabric, which has no mssparkutils equivalent.
         FileNotFoundError: If the local-spark-utils-config.json file is not found at the specified path.
     """
     platform = get_platform()
 
     if platform == FABRIC:
-        return FabricSparkUtils(variable_library_name)
+        # Fabric has no linked services and its workspace is not a Synapse workspace, so there is
+        # nothing faithful to return. Failing here beats falling through to the local branch and
+        # reporting a missing local-spark-utils-config.json in a Fabric notebook.
+        raise NotImplementedError(
+            "get_spark_utils has no Fabric implementation. Use corvus_python.fabric "
+            "(FabricTokenCredential, get_variable_library_value) with the Azure SDKs instead."
+        )
 
     if platform == SYNAPSE:
         from notebookutils import mssparkutils
