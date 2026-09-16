@@ -8,7 +8,7 @@ This provides a library of Python utility functions and classes, generally in th
 
 | Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
 |-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse) based on mssparkutils API. Raises on Fabric - see [Fabric](#fabric). <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
+| <code>get_spark_utils</code>      | Function    | Returns the notebook utilities for the current environment: mssparkutils on Synapse, native notebookutils on Fabric, and a config-driven mirror locally. See [On Fabric](#on-fabric) for how Fabric differs. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
 
 
 #### `get_spark_utils()`
@@ -54,9 +54,14 @@ Below shows the current, complete specification of the config file for the suppo
 
 By default, a file in the root of the current working directory with file name `local-spark-utils-config.json` will be automatically discovered. If the file resides in a different location, and/or has a different file name, then the absolute path must be specified when calling `get_spark_utils()`.
 
-##### Fabric
+##### On Fabric
 
-`get_spark_utils()` raises `NotImplementedError` on Fabric. Fabric has no linked services, and its workspace is not a Synapse workspace, so there is no faithful `mssparkutils` implementation to return — a mirror of one produces plausible wrong answers rather than errors. Use the primitives in [`fabric`](#fabric) with the Azure SDKs instead.
+On Fabric, `get_spark_utils()` returns Fabric's native `notebookutils`, which works in both Spark and Python notebooks. It is not a drop-in replacement for Synapse's `mssparkutils`:
+
+- **No linked services.** `credentials.getSecretWithLS` does not exist; use `credentials.getSecret(vault_name, secret_name)`.
+- **Tokens need full resource scopes.** `credentials.getToken("Synapse")` is rejected; pass `https://dev.azuresynapse.net/.default` instead (see `TOKEN_AUDIENCE_SCOPES`).
+
+Use [`get_platform()`](#platform) where behaviour needs to differ, and the primitives in [`fabric`](#fabric) to use the Azure SDKs from a Fabric notebook.
 
 
 ### `platform`

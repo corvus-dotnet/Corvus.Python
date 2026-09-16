@@ -9,29 +9,36 @@ from corvus_python.platform import FABRIC, SYNAPSE, get_platform
 def get_spark_utils(
     local_spark_utils_config_file_path: str = f"{os.getcwd()}/local-spark-utils-config.json",
 ):
-    """Returns spark utility functions corresponding to the current environment.
+    """Returns the notebook utilities for the current environment.
+
+    - Synapse: `notebookutils.mssparkutils`.
+    - Fabric: Fabric's native `notebookutils`, which works in both Spark and Python notebooks.
+    - Local: `LocalSparkUtils`, a partial mirror of the mssparkutils API driven by a config file.
+
+    The Fabric and Synapse objects are not interchangeable. Fabric has no linked services, so
+    `credentials.getSecretWithLS` does not exist, and `credentials.getToken` needs full resource
+    scopes rather than Synapse's aliases. Use `corvus_python.platform.get_platform()` where behaviour
+    needs to differ.
 
     Args:
         local_spark_utils_config_file_path (str): Path to the config used to instantiate the `LocalSparkUtils` class.
             Defaults to a file located in the root of the current working directory.
 
     Returns:
-        object: An instance of the spark utility functions.
+        object: The notebook utilities for the current environment.
 
     Raises:
-        NotImplementedError: If called on Fabric, which has no mssparkutils equivalent.
-        FileNotFoundError: If the local-spark-utils-config.json file is not found at the specified path.
+        FileNotFoundError: If running locally and the local-spark-utils-config.json file is not found at the
+            specified path.
     """
     platform = get_platform()
 
     if platform == FABRIC:
-        # Fabric has no linked services and its workspace is not a Synapse workspace, so there is
-        # nothing faithful to return. Failing here beats falling through to the local branch and
-        # reporting a missing local-spark-utils-config.json in a Fabric notebook.
-        raise NotImplementedError(
-            "get_spark_utils has no Fabric implementation. Use corvus_python.fabric "
-            "(FabricTokenCredential, get_variable_library_value) with the Azure SDKs instead."
-        )
+        # The flattened namespace rather than mssparkutils, which is only a compatibility alias on
+        # Fabric and is not proven in Python notebooks.
+        import notebookutils
+
+        return notebookutils
 
     if platform == SYNAPSE:
         from notebookutils import mssparkutils
