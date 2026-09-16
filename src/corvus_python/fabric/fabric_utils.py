@@ -1,17 +1,39 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
+import base64
+import json
 import os
+import time
 from typing import Optional
 
-FABRIC = "fabric"
-SYNAPSE = "synapse"
-LOCAL = "local"
+from corvus_python.platform import FABRIC, get_platform
 
 _TLS_BUNDLE_CANDIDATES = (
     "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
     "/etc/pki/tls/certs/ca-bundle.crt",
     "/etc/ssl/certs/ca-certificates.crt",
 )
+
+
+class FabricTokenCredential:
+    """azure-identity compatible TokenCredential backed by notebookutils.
+
+    A Fabric notebook has no IMDS endpoint and no Azure CLI, so DefaultAzureCredential has no
+    source to authenticate from. This lets the Azure SDKs be used there instead, with the request
+    issued by the notebook process itself - so it traverses any managed private endpoint the
+    workspace has.
+    """
+
+    def get_token(self, *scopes, **kwargs):
+        from azure.core.credentials import AccessToken
+        import notebookutils
+
+        # Fabric rejects short keyword audiences such as "synapse" but accepts full resource
+        # scopes, so the scope the SDK asks for is passed through unchanged. kwargs (claims,
+        # tenant_id, enable_cae) are intentionally ignored: notebookutils issues tokens for the
+        # executing identity only and cannot satisfy a CAE challenge.
+        token = notebookutils.credentials.getToken(scopes[0])
+        return AccessToken(token, _token_expiry(token))
 
 
 def configure_tls_trust_store() -> Optional[str]:
@@ -49,22 +71,10 @@ def _has_parseable_certificates(path: str) -> bool:
         return False
 
 
-def get_platform() -> str:
-    """Return 'fabric', 'synapse' or 'local'. Requires no Spark session."""
+def _token_expiry(token: str) -> int:
     try:
-        import notebookutils
-    except ImportError:
-        return LOCAL
-
-    ctx = getattr(notebookutils.runtime, "context", None) or {}
-    if ctx.get("productType") == "Fabric":
-        return FABRIC
-
-    # Only reachable once Fabric is positively excluded: Fabric Spark sessions
-    # also set MMLSPARK_PLATFORM_INFO=synapse, so this is unsafe as a first check.
-    if os.environ.get("MMLSPARK_PLATFORM_INFO") == "synapse":
-        return SYNAPSE
-
-    # Defaults to LOCAL rather than SYNAPSE: dummy-notebookutils ships an empty
-    # runtime.context, so a synapse default would misroute if it reached ACA.
-    return LOCAL
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        return int(json.loads(base64.urlsafe_b64decode(payload))["exp"])
+    except Exception:
+        return int(time.time()) + 300

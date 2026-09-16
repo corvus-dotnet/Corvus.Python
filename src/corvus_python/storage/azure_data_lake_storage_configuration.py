@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Optional
 
-from ..platform import configure_tls_trust_store
+from ..fabric import configure_tls_trust_store
 from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 

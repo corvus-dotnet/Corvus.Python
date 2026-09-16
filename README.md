@@ -71,20 +71,13 @@ Use [`get_platform()`](#platform) where behaviour needs to differ, and [`FabricT
 | Component Name                          | Object Type | Description                                                                                                   | Import syntax                                                            |
 |-----------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
 | <code>get_platform</code>               | Function    | Returns `'fabric'`, `'synapse'` or `'local'`. Requires no Spark session, so it works in Fabric Python notebooks as well as Spark ones. Has no side effects. | <code>from corvus_python.platform import get_platform</code>             |
-| <code>configure_tls_trust_store</code>  | Function    | Points Rust-based TLS clients at a CA bundle they can parse. No-op off Fabric. See [TLS on Fabric](#tls-on-fabric). | <code>from corvus_python.platform import configure_tls_trust_store</code> |
-
-#### TLS on Fabric
-
-Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
-
-`configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
-
 
 ### `fabric`
 
 | Component Name                           | Object Type | Description                                                                                             | Import syntax                                                                |
 |------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
 | <code>FabricTokenCredential</code>       | Class       | azure-identity compatible credential backed by `notebookutils`, for using the Azure SDKs inside a Fabric notebook. | <code>from corvus_python.fabric import FabricTokenCredential</code>          |
+| <code>configure_tls_trust_store</code>   | Function    | Points Rust-based TLS clients at a CA bundle they can parse. No-op off Fabric. See [TLS on Fabric](#tls-on-fabric). | <code>from corvus_python.fabric import configure_tls_trust_store</code>      |
 
 Fabric is detected via `notebookutils.runtime.context["productType"]` (see [`platform`](#platform)), which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
 
@@ -98,6 +91,12 @@ client = SecretClient("https://my-key-vault.vault.azure.net/", FabricTokenCreden
 ```
 
 Composition is left to the consumer: corvus cannot know what a project calls its variable library, which vault it uses, or how it maps secrets to configuration.
+
+#### TLS on Fabric
+
+Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
+
+`configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
 
 
 ### `pyspark.utilities`
