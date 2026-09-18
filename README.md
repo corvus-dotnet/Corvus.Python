@@ -8,7 +8,7 @@ This provides a library of Python utility functions and classes, generally in th
 
 | Component Name                    | Object Type | Description                                                                                                                                                                                                                 | Import syntax                                                                 |
 |-----------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| <code>get_spark_utils</code>      | Function    | Returns spark utility functions corresponding to current environment (local/Synapse) based on mssparkutils API. Useful for local development. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
+| <code>get_spark_utils</code>      | Function    | Returns the notebook utilities for the current environment: mssparkutils on Synapse, native notebookutils on Fabric, and a config-driven mirror locally. See [On Fabric](#on-fabric) for how Fabric differs. <b>Note:</b> Config file required for local development - see [section below](#configuration). | <code>from corvus_python.spark_utils import get_spark_utils</code>      |
 
 
 #### `get_spark_utils()`
@@ -53,6 +53,50 @@ Below shows the current, complete specification of the config file for the suppo
 ```
 
 By default, a file in the root of the current working directory with file name `local-spark-utils-config.json` will be automatically discovered. If the file resides in a different location, and/or has a different file name, then the absolute path must be specified when calling `get_spark_utils()`.
+
+##### On Fabric
+
+On Fabric, `get_spark_utils()` returns Fabric's native `notebookutils`, which works in both Spark and Python notebooks. It is not a drop-in replacement for Synapse's `mssparkutils`:
+
+- **No linked services.** `credentials.getSecretWithLS` does not exist; use `credentials.getSecret(vault_name, secret_name)`.
+- **Tokens need full resource scopes.** `credentials.getToken("Synapse")` is rejected; pass `https://dev.azuresynapse.net/.default` instead (see `SYNAPSE_AUDIENCE_SCOPES`).
+
+Fabric-only APIs are available on the same object — for example, variable libraries via `variableLibrary.get("$(/**/<library>/<variable>)")`.
+
+Use [`get_platform()`](#platform) where behaviour needs to differ, and [`FabricTokenCredential`](#fabric) to use the Azure SDKs from a Fabric notebook.
+
+
+### `platform`
+
+| Component Name                          | Object Type | Description                                                                                                   | Import syntax                                                            |
+|-----------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| <code>get_platform</code>               | Function    | Returns `'fabric'`, `'synapse'` or `'local'`. Requires no Spark session, so it works in Fabric Python notebooks as well as Spark ones. Has no side effects. | <code>from corvus_python.platform import get_platform</code>             |
+
+### `fabric`
+
+| Component Name                           | Object Type | Description                                                                                             | Import syntax                                                                |
+|------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| <code>FabricTokenCredential</code>       | Class       | azure-identity compatible credential backed by `notebookutils`, for using the Azure SDKs inside a Fabric notebook. | <code>from corvus_python.fabric import FabricTokenCredential</code>          |
+| <code>configure_tls_trust_store</code>   | Function    | Points Rust-based TLS clients at a CA bundle they can parse. No-op off Fabric. See [TLS on Fabric](#tls-on-fabric). | <code>from corvus_python.fabric import configure_tls_trust_store</code>      |
+
+Fabric is detected via `notebookutils.runtime.context["productType"]` (see [`platform`](#platform)), which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
+
+`FabricTokenCredential` lets the Azure SDKs authenticate inside a Fabric notebook as the notebook's executing identity, using tokens from `notebookutils.credentials.getToken`. It passes the requested scope straight through, because Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes.
+
+```python
+from azure.keyvault.secrets import SecretClient
+from corvus_python.fabric import FabricTokenCredential
+
+client = SecretClient("https://my-key-vault.vault.azure.net/", FabricTokenCredential())
+```
+
+Composition is left to the consumer: corvus cannot know what a project calls its variable library, which vault it uses, or how it maps secrets to configuration.
+
+#### TLS on Fabric
+
+Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
+
+`configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
 
 
 ### `pyspark.utilities`
