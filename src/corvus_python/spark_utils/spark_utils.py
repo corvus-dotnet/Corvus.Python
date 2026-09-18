@@ -2,8 +2,9 @@
 
 import os
 import json
-from corvus_python.spark_utils.local_spark_utils import LocalSparkUtils
 from corvus_python.platform import FABRIC, SYNAPSE, get_platform
+
+from .local_spark_utils import LocalSparkUtils
 
 
 def get_spark_utils(
@@ -13,7 +14,7 @@ def get_spark_utils(
 
     - Synapse: `notebookutils.mssparkutils`.
     - Fabric: Fabric's native `notebookutils`, which works in both Spark and Python notebooks.
-    - Local: `LocalSparkUtils`, a partial mirror of the mssparkutils API driven by a config file.
+    - Local: `LocalSparkUtils`, a partial mirror of Synapse's mssparkutils API driven by a config file.
 
     The Fabric and Synapse objects are not interchangeable. Fabric has no linked services, so
     `credentials.getSecretWithLS` does not exist, and `credentials.getToken` needs full resource
@@ -34,8 +35,6 @@ def get_spark_utils(
     platform = get_platform()
 
     if platform == FABRIC:
-        # The flattened namespace rather than mssparkutils, which is only a compatibility alias on
-        # Fabric and is not proven in Python notebooks.
         import notebookutils
 
         return notebookutils

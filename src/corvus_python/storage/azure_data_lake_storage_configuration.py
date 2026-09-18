@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, Optional
 
-from ..fabric import configure_tls_trust_store
+from corvus_python.fabric import configure_tls_trust_store
+
 from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 

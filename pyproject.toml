@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "corvus-python"
-version = "1.0.13"
+version = "1.0.0"
 description = "An interim home for data-related & python-based utility functionality"
 authors = ["endjin <endjineers@endjin.com>"]
 license = "Apache-2.0"

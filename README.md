@@ -59,7 +59,7 @@ By default, a file in the root of the current working directory with file name `
 On Fabric, `get_spark_utils()` returns Fabric's native `notebookutils`, which works in both Spark and Python notebooks. It is not a drop-in replacement for Synapse's `mssparkutils`:
 
 - **No linked services.** `credentials.getSecretWithLS` does not exist; use `credentials.getSecret(vault_name, secret_name)`.
-- **Tokens need full resource scopes.** `credentials.getToken("Synapse")` is rejected; pass `https://dev.azuresynapse.net/.default` instead (see `TOKEN_AUDIENCE_SCOPES`).
+- **Tokens need full resource scopes.** `credentials.getToken("Synapse")` is rejected; pass `https://dev.azuresynapse.net/.default` instead (see `SYNAPSE_AUDIENCE_SCOPES`).
 
 Fabric-only APIs are available on the same object — for example, variable libraries via `variableLibrary.get("$(/**/<library>/<variable>)")`.
 
@@ -81,7 +81,7 @@ Use [`get_platform()`](#platform) where behaviour needs to differ, and [`FabricT
 
 Fabric is detected via `notebookutils.runtime.context["productType"]` (see [`platform`](#platform)), which works in both Spark and Python notebooks. Do **not** detect Fabric using `MMLSPARK_PLATFORM_INFO` or `AZURE_SERVICE` — Fabric Spark sessions set both to their Synapse values.
 
-`DefaultAzureCredential` cannot authenticate inside a Fabric notebook: there is no IMDS endpoint and no Azure CLI. `FabricTokenCredential` fills that gap. It passes the requested scope straight through, because Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes. Issuing the request from the notebook process also means it traverses any managed private endpoint the workspace has.
+`FabricTokenCredential` lets the Azure SDKs authenticate inside a Fabric notebook as the notebook's executing identity, using tokens from `notebookutils.credentials.getToken`. It passes the requested scope straight through, because Fabric rejects short keyword audiences such as `synapse` but accepts full resource scopes.
 
 ```python
 from azure.keyvault.secrets import SecretClient

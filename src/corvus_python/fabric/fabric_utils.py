@@ -18,10 +18,8 @@ _TLS_BUNDLE_CANDIDATES = (
 class FabricTokenCredential:
     """azure-identity compatible TokenCredential backed by notebookutils.
 
-    A Fabric notebook has no IMDS endpoint and no Azure CLI, so DefaultAzureCredential has no
-    source to authenticate from. This lets the Azure SDKs be used there instead, with the request
-    issued by the notebook process itself - so it traverses any managed private endpoint the
-    workspace has.
+    Lets the Azure SDKs authenticate inside a Fabric notebook as the notebook's executing identity,
+    using tokens from notebookutils.credentials.getToken.
     """
 
     def get_token(self, *scopes, **kwargs):

@@ -2,7 +2,7 @@
 
 from typing import Dict, TypedDict, Literal, Optional
 from corvus_python.auth import get_az_cli_token
-from corvus_python.auth.audiences import TOKEN_AUDIENCE_SCOPES
+from corvus_python.auth.audiences import SYNAPSE_AUDIENCE_SCOPES
 from corvus_python.monitoring import all_methods_start_new_current_span_with_method_name
 from opentelemetry import trace
 
@@ -142,7 +142,7 @@ class LocalCredentialUtils:
                 raise ValueError(f"Unknown secret type {target_secret.get('type')}")
 
     def getToken(self, audience: str) -> str:
-        scope = TOKEN_AUDIENCE_SCOPES.get(audience)
+        scope = SYNAPSE_AUDIENCE_SCOPES.get(audience)
 
         if not scope:
             raise ValueError(f"Unsupported audience '{audience}'")
@@ -182,7 +182,7 @@ class LocalEnvUtils:
 
 @all_methods_start_new_current_span_with_method_name(tracer)
 class LocalSparkUtils:
-    """Class which mirrors elements of the mssparkutils API. Intentionally not a full representation - additional
+    """Class which mirrors elements of Synapse's mssparkutils API. Intentionally not a full representation - additional
     sub-classes will be added to it as and when the need arises.
 
     Attributes:

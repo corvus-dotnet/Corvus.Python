@@ -1,6 +1,8 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
-TOKEN_AUDIENCE_SCOPES = {
+# The audience names Synapse's mssparkutils.credentials.getToken accepts, mapped to the resource
+# scopes they stand for.
+SYNAPSE_AUDIENCE_SCOPES = {
     "Storage": "https://storage.azure.com/.default",
     "Vault": "https://vault.azure.net/.default",
     "AzureManagement": "https://management.azure.com/.default",

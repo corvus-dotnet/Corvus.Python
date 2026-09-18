@@ -4,6 +4,9 @@ import os
 
 FABRIC = "fabric"
 SYNAPSE = "synapse"
+# Neither a Synapse nor a Fabric notebook: local development, but also hosted runtimes such as
+# Azure Container Apps. Locally there is nothing to detect, so this is returned whichever platform
+# the code will eventually run on.
 LOCAL = "local"
 
 
