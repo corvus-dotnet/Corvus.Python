@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs the initialize script when the devcontainer host is running on a non-Windows OS
+.devcontainer/init.sh
