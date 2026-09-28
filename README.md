@@ -250,7 +250,7 @@ except EmailError as e:
 
 ### `storage`
 
-Provides storage configuration abstractions for data lake operations, with implementations for local and Azure Data Lake Gen2 storage.
+Provides storage configuration abstractions for data lake operations, with implementations for local, Azure Data Lake Gen2 and Microsoft Fabric OneLake storage.
 
 | Component Name | Object Type | Description | Import syntax |
 |---|---|---|---|
@@ -259,6 +259,9 @@ Provides storage configuration abstractions for data lake operations, with imple
 | <code>LocalFileSystemStorageConfiguration</code> | Class | Storage configuration backed by the local file system. Useful for local development. | <code>from corvus_python.storage import LocalFileSystemStorageConfiguration</code> |
 | <code>AzureDataLakeFileSystemPerLayerConfiguration</code> | Class | ADLS Gen2 configuration where each data lake layer maps to a separate file system (`bronze`, `silver`, `gold`). | <code>from corvus_python.storage import AzureDataLakeFileSystemPerLayerConfiguration</code> |
 | <code>AzureDataLakeSingleFileSystemConfiguration</code> | Class | ADLS Gen2 configuration using a single file system with top-level folders for each layer. | <code>from corvus_python.storage import AzureDataLakeSingleFileSystemConfiguration</code> |
+| <code>FabricLakehouseTablesConfiguration</code> | Class | Fabric OneLake configuration where each data lake layer maps to a separate Lakehouse (`bronze`, `silver`, `gold` by default), in one workspace or a workspace per layer. Paths are rooted in the Lakehouse's managed `Tables/` area, for Delta tables. | <code>from corvus_python.storage import FabricLakehouseTablesConfiguration</code> |
+| <code>FabricLakehouseFilesConfiguration</code> | Class | As above, but rooted in the Lakehouse's unmanaged `Files/` area, for raw files such as CSV, JSON or Excel. | <code>from corvus_python.storage import FabricLakehouseFilesConfiguration</code> |
+| <code>StorageConfigurationFileStorage</code> | Class | `FileStorage` rooted at one layer of any `StorageConfiguration`, for byte-level access (read, write, find the latest file matching a prefix, list subfolders). Uses [obstore](https://developmentseed.org/obstore/), so the configuration's `storage_options` work unchanged. | <code>from corvus_python.storage.storage_configuration_file_storage import StorageConfigurationFileStorage</code> |
 
 #### Usage Example
 
@@ -268,7 +271,10 @@ from corvus_python.storage import (
     LocalFileSystemStorageConfiguration,
     AzureDataLakeFileSystemPerLayerConfiguration,
     AzureDataLakeSingleFileSystemConfiguration,
+    FabricLakehouseTablesConfiguration,
+    FabricLakehouseFilesConfiguration,
 )
+from corvus_python.storage.storage_configuration_file_storage import StorageConfigurationFileStorage
 
 # Local filesystem (for development)
 local_config = LocalFileSystemStorageConfiguration(base_path="./data")
@@ -290,7 +296,26 @@ adls_single = AzureDataLakeSingleFileSystemConfiguration(
 )
 path = adls_single.get_full_path(DataLakeLayer.GOLD, "my_database/my_table")
 # -> abfss://datalake@mystorageaccount.dfs.core.windows.net/gold/my_database/my_table
+
+# Fabric OneLake - separate Lakehouse per layer, with a class per Lakehouse area
+tables = FabricLakehouseTablesConfiguration(
+    workspace_name="MyWorkspace",
+    lakehouse_names={DataLakeLayer.GOLD: "lh_gold"},  # optional; defaults to bronze/silver/gold
+    workspace_names={DataLakeLayer.GOLD: "MyReportingWorkspace"},  # optional; defaults to workspace_name
+)
+path = tables.get_full_path(DataLakeLayer.SILVER, "my_schema/my_table")
+# -> abfss://MyWorkspace@onelake.dfs.fabric.microsoft.com/silver.Lakehouse/Tables/my_schema/my_table
+
+files = FabricLakehouseFilesConfiguration(workspace_name="MyWorkspace")
+path = files.get_full_path(DataLakeLayer.BRONZE, "raw/orders.csv")
+# -> abfss://MyWorkspace@onelake.dfs.fabric.microsoft.com/bronze.Lakehouse/Files/raw/orders.csv
+
+# Byte-level access to one layer of any configuration
+bronze_files = StorageConfigurationFileStorage(files, DataLakeLayer.BRONZE)
+latest = bronze_files.get_latest_matching_file_bytes("raw/orders_")
 ```
+
+Fabric only discovers managed tables at `Tables/<table>` or, in schema-enabled Lakehouses, `Tables/<schema>/<table>`. When using `PolarsDeltaTableRepository` with `FabricLakehouseTablesConfiguration`, pass an empty `base_path` so the database name becomes the schema.
 
 ---
 
