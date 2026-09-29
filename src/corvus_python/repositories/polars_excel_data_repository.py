@@ -1,12 +1,11 @@
 import logging
-from typing import BinaryIO, cast
 from io import BytesIO
+
 import polars as pl
-import fsspec
 from opentelemetry import trace
 
-
 from ..storage import StorageConfiguration, DataLakeLayer
+from ..storage.object_store_utils import read_file_bytes
 from ..monitoring import all_methods_start_new_current_span_with_method_name
 
 tracer = trace.get_tracer(__name__)
@@ -31,27 +30,7 @@ class PolarsExcelDataRepository:
 
         self.logger.info("load_excel - Target file path: %s", path)
 
-        if (
-            self.file_system_configuration.storage_options
-            and self.file_system_configuration.storage_options.get("azure_storage_account_name", None) is not None
-        ):
-            self.logger.info(
-                "load_excel - Using Azure storage account: %s",
-                self.file_system_configuration.storage_options["azure_storage_account_name"],
-            )
-
-            storage_options = {
-                "azure_storage_account_name": self.file_system_configuration.storage_options[
-                    "azure_storage_account_name"
-                ],
-                "anon": False,
-            }
-        else:
-            storage_options = self.file_system_configuration.storage_options or {}
-
-        with fsspec.open(path, **storage_options) as f:
-            f = cast(BinaryIO, f)
-            workbook_bytes = f.read()
+        workbook_bytes = read_file_bytes(path, self.file_system_configuration.storage_options)
 
         worksheets = pl.read_excel(BytesIO(workbook_bytes), sheet_id=0, engine="calamine")
 

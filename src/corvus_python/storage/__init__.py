@@ -4,6 +4,11 @@ from .azure_data_lake_storage_configuration import (
     AzureDataLakeFileSystemPerLayerConfiguration,
     AzureDataLakeSingleFileSystemConfiguration,
 )
+from .fabric_lakehouse_storage_configuration import (
+    FabricLakehousePerLayerConfiguration,
+    FabricLakehouseFilesConfiguration,
+    FabricLakehouseTablesConfiguration,
+)
 
 __all__ = [
     "StorageConfiguration",
@@ -11,4 +16,7 @@ __all__ = [
     "LocalFileSystemStorageConfiguration",
     "AzureDataLakeFileSystemPerLayerConfiguration",
     "AzureDataLakeSingleFileSystemConfiguration",
+    "FabricLakehousePerLayerConfiguration",
+    "FabricLakehouseFilesConfiguration",
+    "FabricLakehouseTablesConfiguration",
 ]

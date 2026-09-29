@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from corvus_python.platform import FABRIC, LOCAL, SYNAPSE, get_platform
+from corvus_python.platform import FABRIC, LOCAL, SYNAPSE, get_platform, is_spark_runtime
 
 
 @pytest.fixture
@@ -80,3 +80,29 @@ class TestGetPlatform:
 
         assert get_platform() == FABRIC
         assert os.environ["SSL_CERT_FILE"] == "/unchanged"
+
+
+class TestIsSparkRuntime:
+    def test_returns_false_when_pyspark_is_not_imported(self, monkeypatch):
+        monkeypatch.delitem(sys.modules, "pyspark", raising=False)
+
+        assert is_spark_runtime() is False
+
+    def test_returns_false_when_pyspark_is_imported_without_a_running_context(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "pyspark", _fake_pyspark(active_context=None))
+
+        assert is_spark_runtime() is False
+
+    def test_returns_true_when_a_spark_context_is_running(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "pyspark", _fake_pyspark(active_context=object()))
+
+        assert is_spark_runtime() is True
+
+
+def _fake_pyspark(active_context):
+    class SparkContext:
+        _active_spark_context = active_context
+
+    module = type(sys)("pyspark")
+    module.SparkContext = SparkContext
+    return module
