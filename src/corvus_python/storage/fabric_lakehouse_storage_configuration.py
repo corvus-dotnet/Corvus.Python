@@ -1,13 +1,18 @@
 """Copyright (c) Endjin Limited. All rights reserved."""
 
+import logging
+import uuid
 from abc import abstractmethod
 from typing import Any, Dict, Optional
 
 from corvus_python.fabric import configure_tls_trust_store
+from corvus_python.platform import FABRIC, get_platform, is_spark_runtime
 
 from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 ONELAKE_DFS_ENDPOINT = "onelake.dfs.fabric.microsoft.com"
+
+logger = logging.getLogger(__name__)
 
 
 class FabricLakehousePerLayerConfiguration(StorageConfiguration):
@@ -34,6 +39,7 @@ class FabricLakehousePerLayerConfiguration(StorageConfiguration):
         lakehouse_names: Optional[Dict[DataLakeLayer, str]] = None,
         workspace_names: Optional[Dict[DataLakeLayer, str]] = None,
         storage_options: Optional[Dict[str, Any]] = None,
+        allow_invalid_certificates: bool = False,
     ):
         """Constructor method
 
@@ -44,14 +50,23 @@ class FabricLakehousePerLayerConfiguration(StorageConfiguration):
             workspace_names (dict, optional): Overrides for the workspace used for a layer, for when Lakehouses live in
                 different workspaces. Layers not specified use workspace_name.
             storage_options (dict, optional): Provider-specific storage options to use when reading or writing data.
+            allow_invalid_certificates (bool, optional): Disable TLS certificate validation for OneLake requests made
+                through storage_options (Polars, deltalake, obstore). Only takes effect on the Fabric Spark runtime,
+                which routes OneLake traffic through a proxy presenting a self-signed CA certificate that rustls
+                rejects with CaUsedAsEndEntity. It is ignored elsewhere, including the Fabric Python runtime, which
+                does not need it. This removes protection against interception, so enable it only where needed.
         """
+        if allow_invalid_certificates:
+            storage_options = _with_invalid_certificates_allowed(storage_options)
         super().__init__(storage_options)
         self.workspace_name = workspace_name
         self.workspace_names = {layer: workspace_name for layer in DataLakeLayer} | _normalise_layer_keys(
             workspace_names
         )
         self.lakehouse_names = {layer: str(layer) for layer in DataLakeLayer} | _normalise_layer_keys(lakehouse_names)
-        # object_store builds its TLS config once per process, so this must precede any request.
+        _ensure_names_not_ids(self.workspace_names, "workspace")
+        _ensure_names_not_ids(self.lakehouse_names, "Lakehouse")
+        # object_store reads SSL_CERT_FILE whenever it builds an HTTP client, so this must precede any request.
         configure_tls_trust_store()
 
     def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
@@ -78,6 +93,35 @@ class FabricLakehouseFilesConfiguration(FabricLakehousePerLayerConfiguration):
     """Fabric Lakehouse configuration targeting the unmanaged 'Files' area, for raw files such as CSV, JSON or Excel."""
 
     lakehouse_area = "Files"
+
+
+def _with_invalid_certificates_allowed(storage_options: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    platform = get_platform()
+    spark = is_spark_runtime()
+    if platform != FABRIC or not spark:
+        logger.info(
+            "allow_invalid_certificates ignored: only needed on the Fabric Spark runtime (platform=%s, spark=%s).",
+            platform,
+            spark,
+        )
+        return storage_options
+    logger.warning("TLS certificate validation is disabled for OneLake requests (allow_invalid_certificates).")
+    # Copied so the caller's dict is not mutated.
+    return {**(storage_options or {}), "allow_invalid_certificates": "true"}
+
+
+def _ensure_names_not_ids(names: Dict[DataLakeLayer, str], item: str) -> None:
+    # OneLake rejects paths that mix IDs with names (400 Bad Request), and Lakehouses are always addressed by name
+    # here, so an ID would only fail later with an unhelpful error.
+    for layer, name in names.items():
+        try:
+            uuid.UUID(name)
+        except ValueError:
+            continue
+        raise ValueError(
+            f"The {item} for layer '{layer}' looks like an ID ('{name}'). Use the {item} name instead: OneLake does "
+            "not accept paths that mix IDs and names."
+        )
 
 
 def _normalise_layer_keys(overrides: Optional[Dict[DataLakeLayer, str]]) -> Dict[DataLakeLayer, str]:

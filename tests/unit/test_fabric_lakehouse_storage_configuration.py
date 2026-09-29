@@ -1,5 +1,6 @@
 import pytest
 
+from corvus_python.platform import FABRIC, LOCAL, SYNAPSE
 from corvus_python.storage import (
     FabricLakehouseFilesConfiguration,
     FabricLakehousePerLayerConfiguration,
@@ -83,12 +84,75 @@ class TestFabricLakehouseConfigurations:
         with pytest.raises(ValueError):
             config_type("ws", lakehouse_names={"platinum": "lh"})
 
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"workspace_name": "b7cece7b-5f03-4129-b77e-cef7a41e9dc0"},
+            {"workspace_name": "ws", "workspace_names": {"gold": "b7cece7b-5f03-4129-b77e-cef7a41e9dc0"}},
+            {"workspace_name": "ws", "lakehouse_names": {"gold": "B7CECE7B-5F03-4129-B77E-CEF7A41E9DC0"}},
+        ],
+    )
+    def test_rejects_ids_in_place_of_names(self, tls_calls, config_type, area, kwargs):
+        """OneLake returns 400 Bad Request for paths that mix IDs and names."""
+        with pytest.raises(ValueError, match="looks like an ID"):
+            config_type(**kwargs)
+
     def test_passes_through_storage_options(self, tls_calls, config_type, area):
         options = {"bearer_token": "t"}
 
         config = config_type("ws", storage_options=options)
 
         assert config.storage_options == options
+
+
+class TestAllowInvalidCertificates:
+    @pytest.fixture
+    def runtime(self, monkeypatch):
+        def set_runtime(platform_name, spark):
+            module = "corvus_python.storage.fabric_lakehouse_storage_configuration"
+            monkeypatch.setattr(f"{module}.get_platform", lambda: platform_name)
+            monkeypatch.setattr(f"{module}.is_spark_runtime", lambda: spark)
+
+        return set_runtime
+
+    def test_is_off_by_default(self, tls_calls, runtime):
+        runtime(FABRIC, spark=True)
+
+        config = FabricLakehouseTablesConfiguration("ws", storage_options={"bearer_token": "t"})
+
+        assert config.storage_options == {"bearer_token": "t"}
+
+    def test_adds_the_object_store_option_on_the_fabric_spark_runtime(self, tls_calls, runtime):
+        """The Spark runtime proxies OneLake with a self-signed CA certificate that rustls rejects."""
+        runtime(FABRIC, spark=True)
+        options = {"bearer_token": "t"}
+
+        config = FabricLakehouseTablesConfiguration("ws", storage_options=options, allow_invalid_certificates=True)
+
+        assert config.storage_options == {"bearer_token": "t", "allow_invalid_certificates": "true"}
+        assert options == {"bearer_token": "t"}, "the caller's dict must not be mutated"
+
+    def test_works_without_other_storage_options(self, tls_calls, runtime):
+        runtime(FABRIC, spark=True)
+
+        config = FabricLakehouseFilesConfiguration("ws", allow_invalid_certificates=True)
+
+        assert config.storage_options == {"allow_invalid_certificates": "true"}
+
+    @pytest.mark.parametrize(
+        "platform_name, spark",
+        [(FABRIC, False), (LOCAL, False), (LOCAL, True), (SYNAPSE, True)],
+        ids=["fabric-python-runtime", "local", "local-spark", "synapse-spark"],
+    )
+    def test_is_ignored_outside_the_fabric_spark_runtime(self, tls_calls, runtime, platform_name, spark):
+        """The Fabric Python runtime reaches OneLake directly, so certificate validation stays on."""
+        runtime(platform_name, spark)
+
+        config = FabricLakehouseTablesConfiguration(
+            "ws", storage_options={"bearer_token": "t"}, allow_invalid_certificates=True
+        )
+
+        assert config.storage_options == {"bearer_token": "t"}
 
 
 def test_base_class_cannot_be_instantiated(tls_calls):

@@ -127,3 +127,16 @@ def test_fabric_configuration_targets_onelake_with_the_configured_storage_option
     assert storage._store.config["use_fabric_endpoint"] == "true"
     assert storage._store.config["token"] == "t"
     assert storage._store.prefix == "silver.Lakehouse/Files"
+
+
+def test_http_client_settings_in_storage_options_are_passed_as_client_options():
+    """Polars accepts client settings in storage_options, but obstore panics if they are passed as store config."""
+    config = FabricLakehouseFilesConfiguration(
+        "ws", storage_options={"bearer_token": "t", "allow_invalid_certificates": "true", "timeout": "30s"}
+    )
+
+    storage = StorageConfigurationFileStorage(config, DataLakeLayer.SILVER)
+
+    assert storage._store.client_options == {"allow_invalid_certificates": "true", "timeout": "30s"}
+    assert storage._store.config["token"] == "t"
+    assert "allow_invalid_certificates" not in storage._store.config

@@ -2,10 +2,8 @@
 
 import posixpath
 from io import BytesIO
-from typing import Any, Dict, Optional
 
 import obstore
-from obstore.store import LocalStore, ObjectStore, from_url
 from opentelemetry import trace
 
 from ..monitoring import (
@@ -13,6 +11,7 @@ from ..monitoring import (
     all_methods_start_new_current_span_with_method_name,
 )
 from .file_storage import FileStorage
+from .object_store_utils import build_object_store
 from .storage_configuration import DataLakeLayer, StorageConfiguration
 
 tracer = trace.get_tracer(__name__)
@@ -38,7 +37,7 @@ class StorageConfigurationFileStorage(FileStorage):
         super().__init__()
         self._root = storage_configuration.get_full_path(layer, "").rstrip("/\\")
         add_attributes_to_current_span(root=self._root)
-        self._store = _build_store(self._root, storage_configuration.storage_options)
+        self._store = build_object_store(self._root, storage_configuration.storage_options, mkdir=True)
 
     def get_file_bytes(self, filename: str) -> BytesIO:
         add_attributes_to_current_span(filename=filename)
@@ -89,12 +88,3 @@ class StorageConfigurationFileStorage(FileStorage):
     def list_subfolders(self, folder_path: str) -> list[str]:
         listing = obstore.list_with_delimiter(self._store, folder_path.strip("/") or None)
         return [posixpath.basename(prefix) for prefix in listing["common_prefixes"]]
-
-
-def _build_store(root: str, storage_options: Optional[Dict[str, Any]]) -> ObjectStore:
-    # LocalFileSystemStorageConfiguration returns plain OS paths rather than URLs.
-    if "://" not in root:
-        return LocalStore(root, mkdir=True)
-    # obstore types config per backend, but the backend is only known once the URL is parsed at runtime.
-    config: Any = storage_options or {}
-    return from_url(root, config=config)

@@ -44,7 +44,8 @@ def configure_tls_trust_store() -> Optional[str]:
     handshake with UnknownIssuer.
 
     No-op off Fabric, and no-op if SSL_CERT_FILE already points at a parseable PEM. Must be
-    called before the first object_store request: TLS config is built once per process.
+    called before object_store builds its HTTP client: it reads SSL_CERT_FILE each time it builds one,
+    so clients built before the call keep the bundle they loaded.
     """
     if get_platform() != FABRIC:
         return None

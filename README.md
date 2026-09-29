@@ -96,7 +96,7 @@ Composition is left to the consumer: corvus cannot know what a project calls its
 
 Fabric sets `SSL_CERT_FILE` to `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`, an OpenSSL *extended trust* bundle made of `BEGIN TRUSTED CERTIFICATE` blocks. OpenSSL-based clients — `requests` and the Azure SDKs — read it without trouble. rustls, used by `object_store` and therefore by `deltalake` and polars' Delta reader, silently skips those blocks, loads no roots at all, and fails every handshake with `invalid peer certificate: UnknownIssuer`.
 
-`configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake storage configuration classes call it on construction, so reading Delta tables through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request — the TLS configuration is built once per process, so calling it afterwards has no effect.
+`configure_tls_trust_store()` repoints `SSL_CERT_FILE` at a plain PEM bundle when the current one can't be parsed, and returns the path it settled on (or `None`). The Azure Data Lake and Fabric Lakehouse storage configuration classes call it on construction, so reading data through them needs no extra setup. If you read storage by some other route, call it yourself before the first `object_store` request. object_store reads `SSL_CERT_FILE` each time it builds an HTTP client, so a client built before the call keeps the unreadable bundle and fails.
 
 
 ### `pyspark.utilities`
@@ -317,6 +317,10 @@ latest = bronze_files.get_latest_matching_file_bytes("raw/orders_")
 
 Fabric only discovers managed tables at `Tables/<table>` or, in schema-enabled Lakehouses, `Tables/<schema>/<table>`. When using `PolarsDeltaTableRepository` with `FabricLakehouseTablesConfiguration`, pass an empty `base_path` so the database name becomes the schema.
 
+Workspaces and Lakehouses must be given by name, not ID. OneLake rejects paths that mix IDs and names with `400 Bad Request`, so the Fabric configurations raise `ValueError` if a value looks like an ID.
+
+On the Fabric Spark runtime, OneLake traffic goes through a proxy that presents a self-signed CA certificate. Polars, deltalake and obstore use rustls, which rejects it with `invalid peer certificate: CaUsedAsEndEntity`. OpenSSL-based clients, the Fabric Python runtime and direct ADLS access are not affected. To read OneLake with Polars from a Spark notebook, pass `allow_invalid_certificates=True`. This disables TLS certificate validation for OneLake requests, and only takes effect on the Fabric Spark runtime; elsewhere it is ignored and an info message is logged. It removes protection against interception, so enable it only where it is needed.
+
 ---
 
 ### `repositories`
@@ -362,6 +366,8 @@ from corvus_python.repositories import PolarsCsvDataRepository
 #### `PolarsExcelDataRepository`
 
 Reads Excel workbooks from a hive-partitioned path, returning all sheets as a `dict[str, DataFrame]`.
+
+The workbook is read through [obstore](https://developmentseed.org/obstore/), so it works with local, Azure Data Lake and Fabric OneLake configurations, and authenticates with the configuration's `storage_options` in the same way as the CSV, NDJSON and Delta repositories.
 
 ```python
 from corvus_python.repositories import PolarsExcelDataRepository
