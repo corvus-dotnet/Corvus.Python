@@ -25,7 +25,7 @@ class AzureDataLakeFileSystemPerLayerConfiguration(StorageConfiguration):
 
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
-        # object_store builds its TLS config once per process, so this must precede any request.
+        # object_store reads SSL_CERT_FILE whenever it builds an HTTP client, so this must precede any request.
         configure_tls_trust_store()
 
     def get_full_path(self, layer: DataLakeLayer, path: str) -> str:
@@ -54,7 +54,7 @@ class AzureDataLakeSingleFileSystemConfiguration(StorageConfiguration):
         super().__init__(storage_options)
         self.storage_account_name = storage_account_name
         self.file_system_name = file_system_name
-        # object_store builds its TLS config once per process, so this must precede any request.
+        # object_store reads SSL_CERT_FILE whenever it builds an HTTP client, so this must precede any request.
         configure_tls_trust_store()
 
     def get_full_path(self, layer: DataLakeLayer, path: str) -> str:

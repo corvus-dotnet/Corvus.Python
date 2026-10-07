@@ -70,6 +70,17 @@ def _given(monkeypatch, platform_name, candidates):
 
 
 class TestConfigureTlsTrustStore:
+    @pytest.fixture(autouse=True)
+    def restore_ssl_cert_file(self):
+        # configure_tls_trust_store writes os.environ directly. monkeypatch.delenv records nothing to undo when the
+        # variable was unset, so without this a fake bundle leaks into later tests and breaks rustls-based clients.
+        original = os.environ.get("SSL_CERT_FILE")
+        yield
+        if original is None:
+            os.environ.pop("SSL_CERT_FILE", None)
+        else:
+            os.environ["SSL_CERT_FILE"] = original
+
     def test_is_a_no_op_off_fabric(self, monkeypatch, bundles):
         trusted, plain, _ = bundles
         _given(monkeypatch, LOCAL, (plain,))
