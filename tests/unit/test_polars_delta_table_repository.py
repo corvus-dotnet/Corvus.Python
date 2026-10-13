@@ -47,15 +47,6 @@ def test_overwriting_the_schema_replaces_a_columns_type(tmp_path):
     assert_frame_equal(_read(repository), pl.DataFrame({"code": ["FRA"], "value": [1.5]}))
 
 
-def test_overwriting_lazily_the_schema_replaces_a_columns_type(tmp_path):
-    _repository(tmp_path).overwrite_table("medals", pl.DataFrame({"code": ["FRA"], "value": [1]}))
-    repository = _repository(tmp_path, WIDER_SCHEMA)
-
-    repository.overwrite_table_lazy("medals", pl.LazyFrame({"code": ["FRA"], "value": [1.5]}), overwrite_schema=True)
-
-    assert_frame_equal(_read(repository), pl.DataFrame({"code": ["FRA"], "value": [1.5]}))
-
-
 def test_overwriting_with_a_condition_replaces_only_the_rows_it_matches(tmp_path):
     repository = _repository(tmp_path)
     repository.overwrite_table("medals", pl.DataFrame({"code": ["FRA", "GBR"], "value": [1, 2]}))
@@ -180,3 +171,13 @@ def test_overwriting_with_a_condition_changes_the_whole_tables_schema(tmp_path):
 
     assert _delta_schema(repository) == _declared_schema(_schema(after))
     assert _read(repository).rows() == [("FRA", None), ("GBR", 2)]
+
+
+def test_a_lazy_frame_is_written_with_every_value_validated(tmp_path):
+    repository = _repository(tmp_path, _schema(NOT_NULL))
+
+    with pytest.raises(pa.errors.SchemaError):
+        repository.overwrite_table("medals", _frame(NULLABLE_VALUE, [("FRA", None)]).lazy(), overwrite_schema=True)
+
+    repository.overwrite_table("medals", _frame(NOT_NULL, [("FRA", 1)]).lazy(), overwrite_schema=True)
+    assert _delta_schema(repository) == _declared_schema(_schema(NOT_NULL))

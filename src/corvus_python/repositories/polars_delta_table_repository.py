@@ -78,6 +78,8 @@ class PolarsDeltaTableRepository:
     def overwrite_table(self, table_name: str, data: pl.DataFrame | pl.LazyFrame, overwrite_schema: bool = False):
         """Replaces the table's rows with `data`, validated against the table's schema first.
 
+        A `LazyFrame` is collected first, so its whole query is optimised as one plan, and
+        every value can be validated: Pandera only checks a `LazyFrame`'s columns and types.
         The data is written with the nullability its table definition declares, which Polars
         has no way to carry: with `overwrite_schema`, the table takes the definition's
         non-nullable columns too.
@@ -108,36 +110,6 @@ class PolarsDeltaTableRepository:
             _with_nullability(data, schema),
             mode="overwrite",
             schema_mode="overwrite" if overwrite_schema else None,
-            storage_options=self.storage_options,
-        )
-
-    def overwrite_table_lazy(self, table_name: str, data: pl.LazyFrame, overwrite_schema: bool = False):
-        """Replaces the table's rows with `data`, streamed, validated against the table's schema first.
-
-        Unlike `overwrite_table`, this can't give the data its definition's nullability
-        without collecting it, so with `overwrite_schema` every column becomes nullable.
-        """
-        span = trace.get_current_span()
-
-        span.set_attributes(
-            {
-                "database_name": self.database_definition.name,
-                "table_name": table_name,
-            }
-        )
-
-        self.ensure_initialised()
-
-        path = self._get_table_path(table_name)
-
-        schema = self.pandera_schemas[table_name]
-
-        schema.validate(data, lazy=False)
-
-        data.sink_delta(
-            path,
-            mode="overwrite",
-            delta_write_options=_schema_mode_options(overwrite_schema),
             storage_options=self.storage_options,
         )
 
@@ -264,11 +236,6 @@ class PolarsDeltaTableRepository:
             self.data_lake_layer,
             f"{self.base_path}/{self.database_definition.name}/{table_name}",
         )
-
-
-def _schema_mode_options(overwrite_schema: bool) -> dict[str, Any] | None:
-    """Polars' `delta_write_options` that replace the table's schema with the data's, if `overwrite_schema`."""
-    return {"schema_mode": "overwrite"} if overwrite_schema else None
 
 
 def _with_nullability(data: pl.DataFrame, schema: pa.DataFrameSchema) -> arro3.Table:

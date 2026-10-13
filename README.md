@@ -346,8 +346,7 @@ from corvus_python.storage import LocalFileSystemStorageConfiguration, DataLakeL
 | Method | Description |
 |---|---|
 | `read_data(table_name)` | Reads a Delta table into a `LazyFrame`. Returns `None` if the table is empty. |
-| `overwrite_table(table_name, data, overwrite_schema=False)` | Overwrites the table after eagerly validating the full dataset against its Pandera schema. |
-| `overwrite_table_lazy(table_name, data, overwrite_schema=False)` | Overwrites the table using streaming execution. Performs schema-level validation only. |
+| `overwrite_table(table_name, data, overwrite_schema=False)` | Overwrites the table after eagerly validating the full dataset against its Pandera schema. Takes a `DataFrame` or a `LazyFrame`, which it collects first. Writes the columns the schema declares not nullable as non-nullable. |
 | `overwrite_table_with_condition(table_name, data, predicate, overwrite_schema=False)` | Overwrites only rows matching the given predicate (e.g. for partition-level updates). |
 | `append_to_table(table_name, data)` | Appends data to an existing Delta table. |
 
