@@ -4,6 +4,7 @@ import pandera.polars as pa
 import polars as pl
 import pytest
 from deltalake import DeltaTable
+from deltalake.exceptions import DeltaError
 from polars.testing import assert_frame_equal
 
 from corvus_python.repositories import DatabaseDefinition, PolarsDeltaTableRepository, TableDefinition
@@ -43,6 +44,15 @@ def test_overwriting_the_schema_replaces_a_columns_type(tmp_path):
     repository = _repository(tmp_path, WIDER_SCHEMA)
 
     repository.overwrite_table("medals", pl.DataFrame({"code": ["FRA"], "value": [1.5]}), overwrite_schema=True)
+
+    assert_frame_equal(_read(repository), pl.DataFrame({"code": ["FRA"], "value": [1.5]}))
+
+
+def test_overwriting_lazily_the_schema_replaces_a_columns_type(tmp_path):
+    _repository(tmp_path).overwrite_table("medals", pl.DataFrame({"code": ["FRA"], "value": [1]}))
+    repository = _repository(tmp_path, WIDER_SCHEMA)
+
+    repository.overwrite_table_lazy("medals", pl.LazyFrame({"code": ["FRA"], "value": [1.5]}), overwrite_schema=True)
 
     assert_frame_equal(_read(repository), pl.DataFrame({"code": ["FRA"], "value": [1.5]}))
 
@@ -181,3 +191,40 @@ def test_a_lazy_frame_is_written_with_every_value_validated(tmp_path):
 
     repository.overwrite_table("medals", _frame(NOT_NULL, [("FRA", 1)]).lazy(), overwrite_schema=True)
     assert _delta_schema(repository) == _declared_schema(_schema(NOT_NULL))
+
+
+def test_overwriting_lazily_validates_columns_and_types_but_not_values(tmp_path):
+    schema = pa.DataFrameSchema(
+        {"code": pa.Column(pl.String), "value": pa.Column(pl.Int32, checks=pa.Check.ge(0))}, unique=["code"]
+    )
+    repository = _repository(tmp_path, schema)
+
+    with pytest.raises(pa.errors.SchemaError):
+        repository.overwrite_table_lazy("medals", _frame({"code": (pl.String, False)}, [("FRA",)]).lazy())
+    repository.overwrite_table_lazy("medals", _frame(NOT_NULL, [("FRA", -1), ("FRA", -2)]).lazy())
+
+    assert _read(repository).rows() == [("FRA", -1), ("FRA", -2)], "Expected the duplicate key and failed check written"
+
+
+def test_overwriting_lazily_leaves_nulls_to_the_tables_own_constraints(tmp_path):
+    repository = _repository(tmp_path, _schema(NOT_NULL))
+    repository.overwrite_table("medals", _frame(NOT_NULL, [("FRA", 1)]), overwrite_schema=True)
+    nulls = _frame(NULLABLE_VALUE, [("FRA", None)]).lazy()
+
+    with pytest.raises(DeltaError):
+        repository.overwrite_table_lazy("medals", nulls)
+    repository.overwrite_table_lazy("medals", nulls, overwrite_schema=True)
+
+    assert _read(repository).rows() == [("FRA", None)], "Expected the null written once the constraint was removed"
+
+
+def test_overwriting_lazily_keeps_non_nullable_columns_unless_it_overwrites_the_schema(tmp_path):
+    repository = _repository(tmp_path, _schema(NOT_NULL))
+    repository.overwrite_table("medals", _frame(NOT_NULL, [("FRA", 1)]), overwrite_schema=True)
+
+    repository.overwrite_table_lazy("medals", _frame(NOT_NULL, [("FRA", 2)]).lazy())
+    kept = _nullability(repository)
+    repository.overwrite_table_lazy("medals", _frame(NOT_NULL, [("FRA", 3)]).lazy(), overwrite_schema=True)
+
+    assert kept == {"code": False, "value": False}
+    assert _nullability(repository) == {"code": True, "value": True}

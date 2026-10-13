@@ -113,6 +113,45 @@ class PolarsDeltaTableRepository:
             storage_options=self.storage_options,
         )
 
+    def overwrite_table_lazy(self, table_name: str, data: pl.LazyFrame, overwrite_schema: bool = False):
+        """Replaces the table's rows with `data`, streamed, without collecting it into memory.
+
+        Only use this for data too large to collect; `overwrite_table` also takes a `LazyFrame`,
+        and does neither of these:
+
+        - **Validation is schema-level only.** Pandera checks a `LazyFrame`'s columns and
+          types, not its values. Duplicate unique keys and values failing the schema's checks
+          are written. A null in a non-nullable column is only stopped by the table's own
+          constraint, if it still has one.
+        - **With `overwrite_schema`, every column becomes nullable**, removing the table's
+          non-nullable constraints, as Polars has no way to stream its data as non-nullable;
+          from then on, nulls in those columns are written too. Without it, the table keeps
+          its schema, constraints included.
+        """
+        span = trace.get_current_span()
+
+        span.set_attributes(
+            {
+                "database_name": self.database_definition.name,
+                "table_name": table_name,
+            }
+        )
+
+        self.ensure_initialised()
+
+        path = self._get_table_path(table_name)
+
+        schema = self.pandera_schemas[table_name]
+
+        schema.validate(data, lazy=False)
+
+        data.sink_delta(
+            path,
+            mode="overwrite",
+            delta_write_options={"schema_mode": "overwrite"} if overwrite_schema else None,
+            storage_options=self.storage_options,
+        )
+
     def overwrite_table_with_condition(
         self, table_name: str, data: pl.DataFrame | pl.LazyFrame, predicate: str, overwrite_schema: bool = False
     ):
