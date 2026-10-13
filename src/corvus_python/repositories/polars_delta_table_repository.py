@@ -1,3 +1,5 @@
+from typing import Any
+
 import polars as pl
 from deltalake import DeltaTable, write_deltalake
 from opentelemetry import trace
@@ -44,8 +46,16 @@ class PolarsDeltaTableRepository:
         self.base_path = base_path
         self.database_definition = database_definition
         self.initialised = False
-        self.storage_options = self.storage_configuration.storage_options
         self.pandera_schemas = {table.name: table.schema for table in self.database_definition.tables}
+
+    @property
+    def storage_options(self) -> dict[str, Any] | None:
+        """The storage configuration's options, read each time they're used.
+
+        A caller can renew a token during a long run by updating the configuration's
+        `storage_options`; the repository's next operation uses the new options.
+        """
+        return self.storage_configuration.storage_options
 
     def read_data(self, table_name: str) -> pl.LazyFrame | None:
         """
@@ -88,7 +98,7 @@ class PolarsDeltaTableRepository:
         data.write_delta(
             path,
             mode="overwrite",
-            overwrite_schema=overwrite_schema,
+            delta_write_options=_schema_mode_options(overwrite_schema),
             storage_options=self.storage_options,
         )
 
@@ -110,15 +120,10 @@ class PolarsDeltaTableRepository:
 
         schema.validate(data, lazy=False)
 
-        if overwrite_schema:
-            delta_write_options = {"schema_mode": "overwrite"}
-        else:
-            delta_write_options = None
-
         data.sink_delta(
             path,
             mode="overwrite",
-            delta_write_options=delta_write_options,
+            delta_write_options=_schema_mode_options(overwrite_schema),
             storage_options=self.storage_options,
         )
 
@@ -147,13 +152,13 @@ class PolarsDeltaTableRepository:
 
         path = self._get_table_path(table_name)
 
+        # deltalake takes the polars DataFrame as an Arrow stream, so this needs no pyarrow.
         write_deltalake(
             path,
-            data.to_arrow(),  # type: ignore
+            data,
             mode="overwrite",
             predicate=predicate,
-            schema_mode=None,
-            overwrite_schema=overwrite_schema,
+            schema_mode="overwrite" if overwrite_schema else None,
             storage_options=self.storage_options,
         )
 
@@ -243,3 +248,8 @@ class PolarsDeltaTableRepository:
             self.data_lake_layer,
             f"{self.base_path}/{self.database_definition.name}/{table_name}",
         )
+
+
+def _schema_mode_options(overwrite_schema: bool) -> dict[str, Any] | None:
+    """Polars' `delta_write_options` that replace the table's schema with the data's, if `overwrite_schema`."""
+    return {"schema_mode": "overwrite"} if overwrite_schema else None
