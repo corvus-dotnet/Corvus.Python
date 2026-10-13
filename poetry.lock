@@ -5300,4 +5300,4 @@ pyspark = ["delta-spark", "pyspark"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2e4b9e8f0b4e9ecdff2531f07b63b0dd2521f0195a56dab62134933b7c5697c9"
+content-hash = "7236464c993ea10f9b67fac6bf0f429efec0079c1f7b514b7bfc7cd655cfc64e"

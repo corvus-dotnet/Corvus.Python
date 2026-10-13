@@ -3,6 +3,7 @@ import warnings
 import pandera.polars as pa
 import polars as pl
 import pytest
+from deltalake import DeltaTable
 from polars.testing import assert_frame_equal
 
 from corvus_python.repositories import DatabaseDefinition, PolarsDeltaTableRepository, TableDefinition
@@ -78,3 +79,43 @@ def test_storage_options_are_read_from_the_configuration_each_time_theyre_used(t
     configuration.storage_options = {"token": "renewed"}
 
     assert repository.storage_options == {"token": "renewed"}
+
+
+NULLABLE_VALUE_SCHEMA = pa.DataFrameSchema(
+    {
+        "code": pa.Column(pl.String),
+        "value": pa.Column(pl.Int64, nullable=True),
+        "detail": pa.Column(pl.Struct({"note": pl.String}), nullable=True),
+    }
+)
+
+
+def _nullability(repository) -> dict[str, bool]:
+    path = repository._get_table_path("medals")
+    return {field.name: field.nullable for field in DeltaTable(path).schema().fields}
+
+
+def _row(code, value):
+    return pl.DataFrame(
+        {"code": [code], "value": [value], "detail": [{"note": "n"}]},
+        schema={"code": pl.String, "value": pl.Int64, "detail": pl.Struct({"note": pl.String})},
+    )
+
+
+def test_overwriting_the_schema_keeps_the_columns_the_definition_declares_not_nullable(tmp_path):
+    repository = _repository(tmp_path, NULLABLE_VALUE_SCHEMA)
+
+    repository.overwrite_table("medals", _row("FRA", 1), overwrite_schema=True)
+
+    assert _nullability(repository) == {"code": False, "value": True, "detail": True}
+
+
+def test_appending_and_overwriting_with_a_condition_keep_the_columns_not_nullable(tmp_path):
+    repository = _repository(tmp_path, NULLABLE_VALUE_SCHEMA)
+    repository.overwrite_table("medals", _row("FRA", 1), overwrite_schema=True)
+
+    repository.append_to_table("medals", _row("GBR", None))
+    repository.overwrite_table_with_condition("medals", _row("FRA", 2), "code = 'FRA'", overwrite_schema=True)
+
+    assert _nullability(repository) == {"code": False, "value": True, "detail": True}
+    assert _read(repository).select("code", "value").rows() == [("FRA", 2), ("GBR", None)]
