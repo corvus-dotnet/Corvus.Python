@@ -1,5 +1,7 @@
 from typing import Any
 
+import arro3.core as arro3
+import pandera.polars as pa
 import polars as pl
 from deltalake import DeltaTable, write_deltalake
 from opentelemetry import trace
@@ -74,6 +76,14 @@ class PolarsDeltaTableRepository:
         return df
 
     def overwrite_table(self, table_name: str, data: pl.DataFrame | pl.LazyFrame, overwrite_schema: bool = False):
+        """Replaces the table's rows with `data`, validated against the table's schema first.
+
+        A `LazyFrame` is collected first, so its whole query is optimised as one plan, and
+        every value can be validated: Pandera only checks a `LazyFrame`'s columns and types.
+        The data is written with the nullability its table definition declares, which Polars
+        has no way to carry: with `overwrite_schema`, the table takes the definition's
+        non-nullable columns too.
+        """
         span = trace.get_current_span()
 
         if isinstance(data, pl.LazyFrame):
@@ -95,14 +105,29 @@ class PolarsDeltaTableRepository:
 
         schema.validate(data, lazy=False)
 
-        data.write_delta(
+        write_deltalake(
             path,
+            _with_nullability(data, schema),
             mode="overwrite",
-            delta_write_options=_schema_mode_options(overwrite_schema),
+            schema_mode="overwrite" if overwrite_schema else None,
             storage_options=self.storage_options,
         )
 
     def overwrite_table_lazy(self, table_name: str, data: pl.LazyFrame, overwrite_schema: bool = False):
+        """Replaces the table's rows with `data`, streamed, without collecting it into memory.
+
+        Only use this for data too large to collect; `overwrite_table` also takes a `LazyFrame`,
+        and does neither of these:
+
+        - **Validation is schema-level only.** Pandera checks a `LazyFrame`'s columns and
+          types, not its values. Duplicate unique keys and values failing the schema's checks
+          are written. A null in a non-nullable column is only stopped by the table's own
+          constraint, if it still has one.
+        - **With `overwrite_schema`, every column becomes nullable**, removing the table's
+          non-nullable constraints, as Polars has no way to stream its data as non-nullable;
+          from then on, nulls in those columns are written too. Without it, the table keeps
+          its schema, constraints included.
+        """
         span = trace.get_current_span()
 
         span.set_attributes(
@@ -123,7 +148,7 @@ class PolarsDeltaTableRepository:
         data.sink_delta(
             path,
             mode="overwrite",
-            delta_write_options=_schema_mode_options(overwrite_schema),
+            delta_write_options={"schema_mode": "overwrite"} if overwrite_schema else None,
             storage_options=self.storage_options,
         )
 
@@ -152,10 +177,9 @@ class PolarsDeltaTableRepository:
 
         path = self._get_table_path(table_name)
 
-        # deltalake takes the polars DataFrame as an Arrow stream, so this needs no pyarrow.
         write_deltalake(
             path,
-            data,
+            _with_nullability(data, schema),
             mode="overwrite",
             predicate=predicate,
             schema_mode="overwrite" if overwrite_schema else None,
@@ -178,12 +202,15 @@ class PolarsDeltaTableRepository:
 
         self.ensure_initialised()
 
-        self.pandera_schemas[table_name].validate(data, lazy=False)
+        schema = self.pandera_schemas[table_name]
+
+        schema.validate(data, lazy=False)
 
         path = self._get_table_path(table_name)
 
-        data.write_delta(
+        write_deltalake(
             path,
+            _with_nullability(data, schema),
             mode="append",
             storage_options=self.storage_options,
         )
@@ -250,6 +277,16 @@ class PolarsDeltaTableRepository:
         )
 
 
-def _schema_mode_options(overwrite_schema: bool) -> dict[str, Any] | None:
-    """Polars' `delta_write_options` that replace the table's schema with the data's, if `overwrite_schema`."""
-    return {"schema_mode": "overwrite"} if overwrite_schema else None
+def _with_nullability(data: pl.DataFrame, schema: pa.DataFrameSchema) -> arro3.Table:
+    """`data` as an Arrow table whose columns are nullable as `schema` declares.
+
+    Polars marks every column nullable when it exports Arrow data, so a table written from
+    it straight would lose its non-nullable columns. Only the columns' nullability changes,
+    not their types or values; a field inside a nested column stays nullable, as a Pandera
+    schema can't declare otherwise. Columns `schema` doesn't list stay nullable. The
+    `arro3` library deltalake uses does this without pyarrow.
+    """
+    table = arro3.Table.from_arrow(data)
+    nullable = {name: column.nullable for name, column in schema.columns.items()}
+    fields = [arro3.Field(field.name, field.type, nullable=nullable.get(field.name, True)) for field in table.schema]
+    return table.with_schema(arro3.Schema(fields, metadata=table.schema.metadata))
