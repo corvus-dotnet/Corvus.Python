@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Iterable, List
 
 import pyodbc
 import struct
@@ -223,9 +223,10 @@ def create_or_alter_view_over_delta_table(
 def drop_views_in_schema(
     conn: pyodbc.Connection,
     schema_name: str = "dbo",
+    exclude: Iterable[str] | None = None,
 ) -> None:
     """
-    Drop all views in a given schema.
+    Drop all views in a given schema, optionally keeping some of them.
 
     Parameters
     ----------
@@ -233,17 +234,26 @@ def drop_views_in_schema(
         An open pyodbc connection to the Synapse workspace.
     schema_name:
         The schema from which to drop all views, e.g. "dbo".
+    exclude:
+        Optional names of views to keep. Names are compared case-insensitively, matching identifier comparison
+        under Synapse's default collation. If None (the default), every view in the schema is dropped.
     """
-    cursor = conn.cursor()
-    cursor.execute(
-        f"""
-        SELECT TABLE_NAME
-        FROM INFORMATION_SCHEMA.VIEWS
-        WHERE TABLE_SCHEMA = '{schema_name}'
-        """
-    )
-    views = cursor.fetchall()
+    excluded_names = {name.casefold() for name in exclude} if exclude is not None else set()
+
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT TABLE_NAME
+            FROM INFORMATION_SCHEMA.VIEWS
+            WHERE TABLE_SCHEMA = ?
+            """,
+            schema_name,
+        )
+        views = cursor.fetchall()
+
     for view in views:
         view_name = view[0]
+        if view_name.casefold() in excluded_names:
+            continue
         drop_ddl = f"DROP VIEW [{schema_name}].[{view_name}]"
         execute_ddl(conn, drop_ddl)

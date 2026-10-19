@@ -3,6 +3,7 @@ import pytest
 from corvus_python.sql.sql_utils import (
     SelectColumn,
     WithColumn,
+    drop_views_in_schema,
     generate_create_or_alter_view_over_delta_table_ddl,
 )
 
@@ -168,3 +169,83 @@ class TestGenerateCreateOrAlterViewOverDeltaTableDdl:
 
         assert f"BULK '{custom_path}'" in result
         assert "FORMAT = 'DELTA'" in result
+
+
+class _FakeCursor:
+    def __init__(self, conn: "_FakeConnection"):
+        self._conn = conn
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def execute(self, sql, *params):
+        self._conn.executed.append((sql, params))
+
+    def fetchall(self):
+        return [(name,) for name in self._conn.existing_views]
+
+
+class _FakeConnection:
+    def __init__(self, existing_views: list[str]):
+        self.existing_views = existing_views
+        self.executed: list[tuple[str, tuple]] = []
+
+    def cursor(self):
+        return _FakeCursor(self)
+
+    def commit(self):
+        pass
+
+    @property
+    def drop_statements(self) -> list[str]:
+        return [sql for sql, _ in self.executed if sql.startswith("DROP VIEW")]
+
+
+class TestDropViewsInSchema:
+    def test_drops_every_view_by_default(self):
+        conn = _FakeConnection(["vw_a", "vw_b"])
+
+        drop_views_in_schema(conn, schema_name="reporting")
+
+        assert conn.drop_statements == ["DROP VIEW [reporting].[vw_a]", "DROP VIEW [reporting].[vw_b]"]
+
+    def test_queries_views_with_schema_name_as_a_parameter(self):
+        conn = _FakeConnection([])
+
+        drop_views_in_schema(conn, schema_name="O'Brien")
+
+        query, params = conn.executed[0]
+        assert "TABLE_SCHEMA = ?" in query
+        assert "O'Brien" not in query
+        assert params == ("O'Brien",)
+
+    def test_keeps_excluded_views(self):
+        conn = _FakeConnection(["keep_me", "drop_me", "also_keep"])
+
+        drop_views_in_schema(conn, schema_name="dbo", exclude=["keep_me", "also_keep"])
+
+        assert conn.drop_statements == ["DROP VIEW [dbo].[drop_me]"]
+
+    def test_matches_excluded_views_case_insensitively(self):
+        conn = _FakeConnection(["Medals", "ATHLETES", "Stale"])
+
+        drop_views_in_schema(conn, schema_name="dbo", exclude=["medals", "Athletes"])
+
+        assert conn.drop_statements == ["DROP VIEW [dbo].[Stale]"]
+
+    def test_accepts_any_iterable_for_exclude(self):
+        conn = _FakeConnection(["a", "b", "c"])
+
+        drop_views_in_schema(conn, schema_name="dbo", exclude=(name for name in ["a", "c"]))
+
+        assert conn.drop_statements == ["DROP VIEW [dbo].[b]"]
+
+    def test_empty_exclude_drops_every_view(self):
+        conn = _FakeConnection(["a", "b"])
+
+        drop_views_in_schema(conn, schema_name="dbo", exclude=[])
+
+        assert conn.drop_statements == ["DROP VIEW [dbo].[a]", "DROP VIEW [dbo].[b]"]
