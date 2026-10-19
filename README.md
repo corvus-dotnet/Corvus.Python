@@ -416,7 +416,7 @@ Includes utility functions for working with SQL databases via pyodbc, with AAD t
 | <code>get_pyodbc_connection_with_token</code>                | Function    | Opens a pyodbc connection using a pre-acquired AAD token. Useful when running inside Synapse notebooks.              | <code>from corvus_python.sql import get_pyodbc_connection_with_token</code>                            |
 | <code>execute_ddl</code>                                     | Function    | Executes a DDL statement (e.g. CREATE VIEW) using a pyodbc connection.                                               | <code>from corvus_python.sql import execute_ddl</code>                                                 |
 | <code>create_or_alter_view_over_delta_table</code>           | Function    | Creates or alters a SQL view over a Delta Lake table, with support for inferred or explicit column types. | <code>from corvus_python.sql import create_or_alter_view_over_delta_table</code>                       |
-| <code>drop_views_in_schema</code>                            | Function    | Drops all views in a given schema.                                                                                   | <code>from corvus_python.sql import drop_views_in_schema</code>                                        |
+| <code>drop_views_in_schema</code>                            | Function    | Drops all views in a given schema, except any named in `exclude` (compared case-insensitively).                    | <code>from corvus_python.sql import drop_views_in_schema</code>                                        |
 | <code>SelectColumn</code>                                    | Class       | Dataclass representing a column to select, with an optional display title.                                           | <code>from corvus_python.sql import SelectColumn</code>                                                |
 | <code>WithColumn</code>                                      | Class       | Dataclass representing a column with an explicit type for use in OPENROWSET WITH clauses.                            | <code>from corvus_python.sql import WithColumn</code>                                                  |
 
@@ -437,6 +437,44 @@ Convenience wrappers specific to Fabric SQL Analytics endpoints.
 | Component Name                                               | Object Type | Description                                                                                                          | Import syntax                                                                                          |
 |--------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | <code>get_fabric_sql_pyodbc_connection</code>                | Function    | Opens a pyodbc connection to a Fabric SQL Analytics endpoint using AAD tokens.                                       | <code>from corvus_python.sql.fabric import get_fabric_sql_pyodbc_connection</code>                     |
+
+#### `sql.repositories`
+
+Helpers for creating SQL views over the Delta tables described by `TableDefinition`s. Each view is named after the table's `title` (or its `name`) and selects the schema's columns, aliased to their titles.
+
+| Component Name | Object Type | Description | Import syntax |
+|---|---|---|---|
+| <code>sync_sql_views_from_tables</code> | Function | Drops the views in a schema that no table produces, then creates or alters a view for each table. Use this rather than `drop_views_in_schema` followed by `create_sql_views_from_tables`. | <code>from corvus_python.sql.repositories import sync_sql_views_from_tables</code> |
+| <code>create_sql_views_from_tables</code> | Function | Creates or alters a view for each table. | <code>from corvus_python.sql.repositories import create_sql_views_from_tables</code> |
+| <code>SqlViewCreationError</code> | Exception | Raised, inside an `ExceptionGroup`, for each view that failed to be created when creating views in parallel. Has `schema_name` and `view_name` attributes. | <code>from corvus_python.sql.repositories import SqlViewCreationError</code> |
+
+Both functions take an optional `max_workers` (default `1`: views are created one at a time on `conn`, and the first error is raised). Above `1`, views are created concurrently, with each worker using its own connection from the required `connection_factory`, since pyodbc connections can't be shared across threads. Every view is attempted, and the failures are raised together in an `ExceptionGroup`. Stale views are always dropped sequentially on `conn`.
+
+```python
+from corvus_python.sql.repositories import sync_sql_views_from_tables
+from corvus_python.sql.synapse import get_synapse_sql_pyodbc_connection_with_token
+
+token = mssparkutils.credentials.getToken("DW")
+
+
+def connect():
+    # Reuses the one token across every worker's connection.
+    return get_synapse_sql_pyodbc_connection_with_token("myworkspace", "my_database", token)
+
+
+conn = connect()
+try:
+    sync_sql_views_from_tables(
+        conn,
+        schema_name="dbo",
+        tables=TABLES,
+        build_delta_table_path_func=lambda table_name: f"abfss://silver@myaccount.dfs.core.windows.net/{table_name}",
+        max_workers=8,
+        connection_factory=connect,
+    )
+finally:
+    conn.close()
+```
 
 #### Usage Example
 
