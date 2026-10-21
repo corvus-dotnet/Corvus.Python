@@ -1,7 +1,10 @@
-from typing import Any
+import contextvars
+from typing import Any, Callable, TypeVar
 
 from opentelemetry import trace
 from functools import wraps
+
+T = TypeVar("T")
 
 
 def start_as_current_span_with_method_name(tracer: trace.Tracer):
@@ -102,3 +105,34 @@ def add_kwargs_to_current_span(keys: list[str], source_kwargs: Any):
     """
     span = trace.get_current_span()
     add_kwargs_to_span(span, keys, source_kwargs)
+
+
+def in_current_context(func: Callable[..., T]) -> Callable[..., T]:
+    """
+    Wraps a function to run in a copy of the calling thread's current context, each time it's called, on whichever
+    thread calls it.
+
+    A thread pool's worker threads start with an empty context, so a function run on one loses the context it was
+    handed over in, OpenTelemetry's current span included. A span it starts, such as an instrumented HTTP request's,
+    then begins a trace of its own, rather than being a child of the caller's span. Wrapping the function keeps it in
+    the caller's trace:
+
+        with tracer.start_as_current_span("download_images"), ThreadPoolExecutor() as pool:
+            images = list(pool.map(in_current_context(download_image), urls))
+
+    The context is captured when the function is wrapped, so wrap it on the thread whose context it should run in.
+    Each call runs in its own copy of that context, as one context can't be entered on two threads at once.
+
+    Args:
+        func (Callable[..., T]): The function to run in the calling thread's context.
+
+    Returns:
+        Callable[..., T]: A function taking the same arguments, and returning what func returns.
+    """
+    context = contextvars.copy_context()
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return context.copy().run(func, *args, **kwargs)
+
+    return wrapper

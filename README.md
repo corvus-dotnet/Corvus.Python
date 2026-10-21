@@ -248,6 +248,32 @@ except EmailError as e:
 
 ---
 
+### `monitoring`
+
+Includes helpers for tracing with OpenTelemetry.
+
+| Function | Description |
+|---|---|
+| `start_as_current_span_with_method_name` | Decorator that runs a function in a new span, named after the function. |
+| `all_methods_start_new_current_span_with_method_name` | Class decorator that does the same for every method. |
+| `add_attributes_to_span`, `add_attributes_to_current_span` | Add key-value pairs to a span as attributes. |
+| `add_kwargs_to_span`, `add_kwargs_to_current_span` | Add the named keyword arguments to a span as attributes. |
+| `in_current_context` | Wraps a function to run in the calling thread's context, so work on a thread pool stays in the caller's trace. |
+
+A thread pool's worker threads start with an empty context, so a span started on one, such as an instrumented HTTP
+request's, begins a trace of its own. Wrap the function you hand the pool in `in_current_context`, on the thread
+whose span it should be part of:
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+from corvus_python.monitoring import in_current_context
+
+with tracer.start_as_current_span("download_images"), ThreadPoolExecutor() as pool:
+    images = list(pool.map(in_current_context(download_image), urls))
+```
+
+---
+
 ### `storage`
 
 Provides storage configuration abstractions for data lake operations, with implementations for local, Azure Data Lake Gen2 and Microsoft Fabric OneLake storage.
