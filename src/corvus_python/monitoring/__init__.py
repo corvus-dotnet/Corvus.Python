@@ -5,6 +5,7 @@ from .tracing import (
     add_attributes_to_current_span,
     add_kwargs_to_span,
     add_kwargs_to_current_span,
+    in_current_context,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "add_attributes_to_current_span",
     "add_kwargs_to_span",
     "add_kwargs_to_current_span",
+    "in_current_context",
 ]
