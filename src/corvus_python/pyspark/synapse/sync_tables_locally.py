@@ -15,10 +15,12 @@ class ObjectSyncDetails:
     Attributes:
         database_name (str): Name of the database.
         tables (List[str]): List of tables in the database.
+        schema_name (str, optional): Name of the schema containing the tables. Defaults to "dbo".
     """
 
     database_name: str
     tables: List[str]
+    schema_name: str = "dbo"
 
 
 def _get_jdbc_connection_properties(workspace_name: str) -> Tuple[str, dict]:
@@ -85,7 +87,9 @@ overwrite is set to False. Skipping table sync."
                 continue
             else:
                 spark.read.jdbc(
-                    url=jdbc_url, table=f"{osd.database_name}.dbo.{table}", properties=connection_properties
+                    url=jdbc_url,
+                    table=f"{osd.database_name}.{osd.schema_name}.{table}",
+                    properties=connection_properties,
                 ).coalesce(1).write.format("delta").mode("overwrite").saveAsTable(f"{osd.database_name}.{table}")
 
     if not existing_spark_session:

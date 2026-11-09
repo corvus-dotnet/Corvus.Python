@@ -136,7 +136,8 @@ sync_synapse_tables_to_local_spark(
         ),
         ObjectSyncDetails(
             database_name='database_2',
-            tables=['table_1', 'table_2']
+            tables=['table_1', 'table_2'],
+            schema_name='my_schema'  # Optional. Defaults to 'dbo'.
         )
     ],
     # overwrite = True,  # Uncomment if local clones already exist and you wish to overwrite.

@@ -14,6 +14,17 @@
 							"-file",
 							"${containerWorkspaceFolder}/.venv/bin/Activate.ps1"
 						]
+					},
+					"Claude Code": {
+						"id": "Claude Code",
+						"title": "Claude Code",
+						"overrideName": true,
+						"icon": "agent",
+						"path": "bash",
+						"args": [
+							"-c",
+							"claude --permission-mode auto"
+						]
 					}
 				},
 				"files.exclude": {
@@ -87,7 +98,8 @@
 				"ms-vsliveshare.vsliveshare",
 				"ms-python.black-formatter",
 				"redhat.vscode-xml",
-				"ms-toolsai.datawrangler"
+				"ms-toolsai.datawrangler",
+				"anthropic.claude-code"
 			]
 		}
 	},
@@ -100,8 +112,49 @@
 		4043,
 		4044
 	],
+	// Bind-mount other folders from the local WSL filesystem into the container.
+	//
+	// The '.claude' entries share Claude Code's credentials, settings and memory with the
+	// host, so a container rebuild no longer loses them. Host home directory is resolved as
+	// '${localEnv:HOME}${localEnv:USERPROFILE}' — the documented cross-platform idiom, since
+	// normally only one of the two is set. 'initializeCommand' below warns if both are set
+	// (a Windows host launched from Git Bash/msys) and pre-creates '~/.claude.json' on the
+	// host, since Docker would otherwise create a missing bind-mount source as a directory
+	// instead of a file.
+	// Reference-repo mounts (sibling EDAP/os-finance/merl/knowledge-base checkouts, used for
+	// AI-assisted research during the NOC Data migration) are intentionally NOT declared here.
+	// They were hardcoded to one machine's local paths, which breaks the container for anyone
+	// else, and they're a personal/temporary research aid, not something this repo's
+	// devcontainer should depend on long-term. See '.devcontainer/sibling-repo-mounts.md' for
+	// the template — copy the entries you need into your own local, uncommitted copy of this
+	// file.
+	"mounts": [
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/,target=/root/.claude,type=bind",
+		// Plugin state is kept container-local: 'known_marketplaces.json' and
+		// 'installed_plugins.json' record absolute install paths, and a marketplace added on
+		// a Windows host is recorded as 'C:\Users\...', which the container then rejects as a
+		// corrupted installLocation (and vice versa). This volume shadows the nested path so
+		// credentials/settings stay shared while plugin state stays per-environment. Docker
+		// applies mounts parent-first, so this layers on top of the '.claude' bind above
+		// regardless of declaration order.
+		"source=${localWorkspaceFolderBasename}-claude-plugins,target=/root/.claude/plugins,type=volume",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude.json,target=/root/.claude.json,type=bind",
+		// Backs git worktrees Claude Code creates (e.g. via the worktree-isolation tools) with
+		// a named volume, so they survive a container rebuild instead of living on the
+		// container's ephemeral filesystem.
+		"source=${localWorkspaceFolderBasename}-worktrees,target=/root/worktrees,type=volume",
+		// Mount docker socket to allow building images from within the container
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached"
+	],
+	"initializeCommand": [
+		// Takes advantage of how Windows & Linux resolve paths to executable files to enable
+		// us to run the real 'init.ps1' script in a way that is cross-platform friendly.
+		// On Linux the below will run the file of the same name, whereas under Windows it
+		// will run the 'initialize.cmd' batch script.
+		".devcontainer/initialize"
+	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "poetry install",
+	"postCreateCommand": "./.devcontainer/postCreateCommand.ps1",
 	// The default here seems to have flipped, commenting-out 'remoteUser' no longer causes the container
 	// to run as 'root', instead it ran as the non-privileged 'vscode' user which didn't have access
 	// to where 'poetry' is installed and potentially other tools too.
