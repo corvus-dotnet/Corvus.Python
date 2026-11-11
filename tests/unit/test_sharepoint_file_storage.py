@@ -2,6 +2,7 @@ import pytest
 import requests
 from io import BytesIO
 from unittest.mock import patch, Mock
+from corvus_python.http_timeouts import DEFAULT_HTTP_TIMEOUT, DEFAULT_UPLOAD_HTTP_TIMEOUT
 from corvus_python.storage.sharepoint_file_storage import SharePointFileStorage
 
 
@@ -48,7 +49,7 @@ def test_get_file_bytes_success(storage, mock_sharepoint_utilities):
         assert result.tell() == 0  # Stream should be at position 0
         content = result.read()
         assert content == test_content
-        mock_get.assert_called_once_with(download_url)
+        mock_get.assert_called_once_with(download_url, timeout=DEFAULT_HTTP_TIMEOUT)
 
 
 def test_get_file_bytes_network_error(storage, mock_sharepoint_utilities):
@@ -88,7 +89,7 @@ def test_get_matching_file_names_multiple_matches(storage, mock_sharepoint_utili
     assert "sample_logs/app_002.txt" in results
     assert "sample_logs/app_003.txt" in results
     mock_sharepoint_utilities.get_download_urls_for_files_in_folder.assert_called_once_with(
-        drive_id="fake_drive_id", folder_name="sample_logs", token="fake_token"
+        drive_id="fake_drive_id", folder_name="sample_logs", token="fake_token", timeout=DEFAULT_HTTP_TIMEOUT
     )
 
 
@@ -291,7 +292,7 @@ def test_write_file_success(storage, mock_sharepoint_utilities):
     storage.write_file(filename, file_content)
 
     mock_sharepoint_utilities.save_file.assert_called_once_with(
-        "fake_drive_id", filename, "fake_token", bytearray(file_content)
+        "fake_drive_id", filename, "fake_token", bytearray(file_content), timeout=DEFAULT_UPLOAD_HTTP_TIMEOUT
     )
 
 
@@ -328,7 +329,7 @@ def test_list_subfolders_success(storage, mock_sharepoint_utilities):
     assert "archive" in results
     assert "backups" in results
     mock_sharepoint_utilities.get_items_in_folder.assert_called_once_with(
-        drive_id="fake_drive_id", folder_path=folder_path, token="fake_token"
+        drive_id="fake_drive_id", folder_path=folder_path, token="fake_token", timeout=DEFAULT_HTTP_TIMEOUT
     )
 
 
@@ -346,7 +347,7 @@ def test_list_subfolders_nested_path(storage, mock_sharepoint_utilities):
 
     assert len(results) == 2
     mock_sharepoint_utilities.get_items_in_folder.assert_called_once_with(
-        drive_id="fake_drive_id", folder_path=folder_path, token="fake_token"
+        drive_id="fake_drive_id", folder_path=folder_path, token="fake_token", timeout=DEFAULT_HTTP_TIMEOUT
     )
 
 
@@ -359,6 +360,42 @@ def test_list_subfolders_no_subfolders(storage, mock_sharepoint_utilities):
     results = storage.list_subfolders(folder_path)
 
     assert len(results) == 0
+
+
+# endregion
+
+# region Tests for request timeouts
+
+
+def test_caller_supplied_timeouts_are_passed_to_every_request(mock_sharepoint_utilities):
+    mock_sharepoint_utilities.get_drive_id.return_value = "fake_drive_id"
+    mock_sharepoint_utilities.get_file_download_url.return_value = "https://example.com/download"
+    mock_sharepoint_utilities.get_download_urls_for_files_in_folder.return_value = []
+    mock_sharepoint_utilities.get_items_in_folder.return_value = []
+
+    storage = SharePointFileStorage(
+        "tenant.sharepoint.com", "TestSite", "Documents", "fake_token", timeout=(1, 2), upload_timeout=(3, 4)
+    )
+    with patch("requests.get", return_value=Mock(content=b"content")) as mock_get:
+        storage.get_file_bytes("file.txt")
+    storage.get_matching_file_names("folder/prefix")
+    storage.list_subfolders("folder")
+    storage.write_file("file.txt", b"content")
+
+    assert mock_sharepoint_utilities.get_drive_id.call_args.kwargs["timeout"] == (1, 2)
+    assert mock_sharepoint_utilities.get_file_download_url.call_args.kwargs["timeout"] == (1, 2)
+    assert mock_get.call_args.kwargs["timeout"] == (1, 2)
+    assert mock_sharepoint_utilities.get_download_urls_for_files_in_folder.call_args.kwargs["timeout"] == (1, 2)
+    assert mock_sharepoint_utilities.get_items_in_folder.call_args.kwargs["timeout"] == (1, 2)
+    assert mock_sharepoint_utilities.save_file.call_args.kwargs["timeout"] == (3, 4)
+
+
+def test_get_file_bytes_propagates_timeout(storage, mock_sharepoint_utilities):
+    mock_sharepoint_utilities.get_file_download_url.return_value = "https://example.com/download"
+
+    with patch("requests.get", side_effect=requests.Timeout("read timed out")):
+        with pytest.raises(requests.Timeout):
+            storage.get_file_bytes("file.txt")
 
 
 # endregion

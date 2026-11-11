@@ -5,6 +5,7 @@ from typing import Any
 import requests
 from opentelemetry import trace
 
+from ..http_timeouts import DEFAULT_HTTP_TIMEOUT, DEFAULT_UPLOAD_HTTP_TIMEOUT, HttpTimeout
 from ..sharepoint import SharePointUtilities
 from ..monitoring import (
     add_attributes_to_current_span,
@@ -17,10 +18,35 @@ tracer = trace.get_tracer(__name__)
 
 @all_methods_start_new_current_span_with_method_name(tracer)
 class SharePointFileStorage(FileStorage):
+    """File storage backed by a SharePoint document library, accessed through the Microsoft Graph API.
+
+    Every HTTP request it makes has a timeout: either a number of seconds or a ``(connect, read)`` tuple. A request
+    that times out raises ``requests.Timeout``, which is not caught or retried.
+
+    Args:
+        sharepoint_tenant_fqdn (str): FQDN of the SharePoint tenant, in the form "<tenant>.sharepoint.com".
+        sharepoint_site_name (str): Name of the SharePoint site.
+        library_name (str): Name of the document library.
+        auth_token (str): Bearer token for the requests.
+        timeout (float | tuple[float, float], optional): Timeout in seconds for each request other than uploads,
+            including the drive lookup made by this constructor. Defaults to DEFAULT_HTTP_TIMEOUT.
+        upload_timeout (float | tuple[float, float], optional): Timeout in seconds for each upload made by
+            write_file. Defaults to DEFAULT_UPLOAD_HTTP_TIMEOUT.
+    """
+
     def __init__(
-        self, sharepoint_tenant_fqdn: str, sharepoint_site_name: str, library_name: str, auth_token: str
+        self,
+        sharepoint_tenant_fqdn: str,
+        sharepoint_site_name: str,
+        library_name: str,
+        auth_token: str,
+        *,
+        timeout: HttpTimeout = DEFAULT_HTTP_TIMEOUT,
+        upload_timeout: HttpTimeout = DEFAULT_UPLOAD_HTTP_TIMEOUT,
     ) -> None:
         super().__init__()
+        self._timeout = timeout
+        self._upload_timeout = upload_timeout
         self._sharepoint_tenant_fqdn = sharepoint_tenant_fqdn
         self._sharepoint_site_name = sharepoint_site_name
         self._library_name = library_name
@@ -35,11 +61,12 @@ class SharePointFileStorage(FileStorage):
             sharepoint_site_name=self._sharepoint_site_name,
             library_name=self._library_name,
             headers=self._headers,
+            timeout=self._timeout,
         )
 
     def get_file_bytes(self, filename: str) -> BytesIO:
         download_url = self._get_file_path(filename)
-        response = requests.get(download_url)
+        response = requests.get(download_url, timeout=self._timeout)
         response.raise_for_status()
         bytes_io = BytesIO(response.content)
         bytes_io.seek(0)
@@ -57,6 +84,7 @@ class SharePointFileStorage(FileStorage):
             drive_id=self.drive_id,
             folder_name=folder_path if folder_path else "",
             token=self._auth_token,
+            timeout=self._timeout,
         )
         # Type assertion: The method returns a list despite its return type annotation
         files_in_folder: list[dict[str, Any]] = files_in_folder_response  # type: ignore
@@ -92,11 +120,13 @@ class SharePointFileStorage(FileStorage):
         return self.get_file_bytes(file_name)
 
     def write_file(self, file_name: str, file_bytes: bytes) -> None:
-        SharePointUtilities.save_file(self.drive_id, file_name, self._auth_token, bytearray(file_bytes))
+        SharePointUtilities.save_file(
+            self.drive_id, file_name, self._auth_token, bytearray(file_bytes), timeout=self._upload_timeout
+        )
 
     def list_subfolders(self, folder_path: str) -> list[str]:
         items = SharePointUtilities.get_items_in_folder(
-            drive_id=self.drive_id, folder_path=folder_path, token=self._auth_token
+            drive_id=self.drive_id, folder_path=folder_path, token=self._auth_token, timeout=self._timeout
         )
         folders: list[dict[str, str]] = [item for item in items if "folder" in item]  # type: ignore
         return [folder["webUrl"].split("/")[-1] for folder in folders]
@@ -120,4 +150,5 @@ class SharePointFileStorage(FileStorage):
             drive_id=self.drive_id,
             file_name=filename,
             token=self._auth_token,
+            timeout=self._timeout,
         )
