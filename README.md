@@ -154,6 +154,8 @@ Includes utility functions when working with Synapse Analytics. Primary API inte
 |-------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 | <code>SynapseUtilities</code> | Class | A utility class for interacting with Azure Synapse Analytics. | <code>from corvus_python.synapse import SynapseUtilities</code> |
 
+`SynapseUtilities` gives every HTTP request a timeout. See [HTTP timeouts](#http-timeouts).
+
 ---
 
 ### `auth`
@@ -172,6 +174,29 @@ Includes utility functions when working with SharePoint REST API. Primary API in
 | Component Name                        | Object Type | Description                                                                                           | Import syntax                                                |
 |---------------------------------------|-------------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 | <code>SharePointUtilities</code>      | Class       | A utility class for interacting with SharePoint REST API.                                             | <code>from corvus_python.sharepoint import SharePointUtilities</code> |
+
+#### HTTP timeouts
+
+`requests` waits forever for a response unless it's given a timeout, so a connection that stalls without closing would block the calling thread indefinitely. Every HTTP request made by `SharePointUtilities`, `SharePointFileStorage` and `SynapseUtilities` therefore has one, from `corvus_python.http_timeouts`:
+
+| Constant                                   | Value (seconds, `(connect, read)`) | Used for                                                       |
+|--------------------------------------------|------------------------------------|----------------------------------------------------------------|
+| <code>DEFAULT_HTTP_TIMEOUT</code>          | `(10, 60)`                         | All requests except uploads.                                    |
+| <code>DEFAULT_UPLOAD_HTTP_TIMEOUT</code>   | `(10, 300)`                        | File uploads: `SharePointUtilities.save_file` and `SharePointFileStorage.write_file`. |
+
+The read timeout is the longest wait between bytes from the server, not a limit on the whole request. To override them, pass the keyword-only `timeout` argument, either a number of seconds or a `(connect, read)` tuple: to each `SharePointUtilities` method, or to the `SynapseUtilities` and `SharePointFileStorage` constructors (`SharePointFileStorage` also takes `upload_timeout`).
+
+When a request times out, `requests.Timeout` (a subclass of `requests.ConnectionError`) is raised. It is not caught or retried; that's for callers to decide.
+
+```python
+import requests
+from corvus_python.sharepoint import SharePointUtilities
+
+try:
+    image = SharePointUtilities.retrieve_image_as_base64(drive_id, file_path, token, timeout=(5, 30))
+except requests.Timeout:
+    ...  # retry, skip or fail
+```
 
 ---
 

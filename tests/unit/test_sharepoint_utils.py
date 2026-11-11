@@ -2,6 +2,7 @@ import base64
 import pytest
 import requests
 from unittest.mock import patch, Mock
+from corvus_python.http_timeouts import DEFAULT_HTTP_TIMEOUT, DEFAULT_UPLOAD_HTTP_TIMEOUT
 from corvus_python.sharepoint.sharepoint_utils import SharePointUtilities
 
 # region Tests for retrieve_image_as_base64
@@ -32,6 +33,7 @@ def test_retrieve_image_as_base64_success():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
         assert result == expected_base64_image
@@ -105,6 +107,7 @@ def test_save_file_success():
                 "Authorization": f"Bearer {token}",
             },
             data=file_bytes,
+            timeout=DEFAULT_UPLOAD_HTTP_TIMEOUT,
         )
 
         assert result == mock_response_json
@@ -133,6 +136,7 @@ def test_save_file_failure():
                 "Authorization": f"Bearer {token}",
             },
             data=file_bytes,
+            timeout=DEFAULT_UPLOAD_HTTP_TIMEOUT,
         )
 
 
@@ -161,6 +165,7 @@ def test_update_sharepoint_columns_success():
                 "Authorization": f"Bearer {token}",
             },
             json=column_updates,
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
 
@@ -187,6 +192,7 @@ def test_update_sharepoint_columns_failure():
                 "Authorization": f"Bearer {token}",
             },
             json=column_updates,
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
 
@@ -217,6 +223,7 @@ def test_get_file_download_url_success():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
         assert result == mock_download_url
@@ -246,6 +253,7 @@ def test_get_file_download_url_failure():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
 
@@ -279,6 +287,7 @@ def test_get_download_urls_for_files_in_folder_success():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
         assert result == mock_files
@@ -308,6 +317,7 @@ def test_get_download_urls_for_files_in_folder_failure():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
 
@@ -351,6 +361,7 @@ def test_get_items_in_folder_success():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
         assert result == mock_folders
@@ -381,6 +392,7 @@ def test_get_items_in_folder_failure():
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {token}",
             },
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
 
@@ -417,6 +429,7 @@ def test_get_drive_id_success():
         mock_get.assert_called_once_with(
             f"https://graph.microsoft.com/v1.0/sites/{sharepoint_tenant_fqdn}:/sites/{sharepoint_site_name}:/drives",
             headers=headers,
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
         assert result == mock_drive_id
@@ -444,6 +457,7 @@ def test_get_drive_id_failure():
         mock_get.assert_called_once_with(
             f"https://graph.microsoft.com/v1.0/sites/{sharepoint_tenant_fqdn}:/sites/{sharepoint_site_name}:/drives",
             headers=headers,
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
 
 
@@ -489,6 +503,7 @@ def test_assign_item_permissions_success():
                     "roles": ["write"],
                     "recipients": recipients,
                 },
+                timeout=DEFAULT_HTTP_TIMEOUT,
             )
             assert result == mock_response_json
 
@@ -532,7 +547,128 @@ def test_assign_item_permissions_failure():
                     "roles": ["read"],
                     "recipients": recipients,
                 },
+                timeout=DEFAULT_HTTP_TIMEOUT,
             )
+
+
+# endregion
+
+# region Tests for request timeouts
+
+
+def _graph_response(json_body=None, content=b""):
+    return Mock(status_code=200, json=lambda: json_body or {}, content=content)
+
+
+def test_retrieve_image_as_base64_passes_default_timeout_to_every_request():
+    download_url = "https://example.com/download/file.png"
+
+    with patch("requests.get") as mock_get:
+        mock_get.side_effect = [
+            Mock(status_code=404),
+            _graph_response({"@microsoft.graph.downloadUrl": download_url}),
+            _graph_response(content=b"image"),
+        ]
+
+        SharePointUtilities.retrieve_image_as_base64("drive", "folder/file.jpg", "token")
+
+    assert mock_get.call_count == 3
+    assert [c.kwargs["timeout"] for c in mock_get.call_args_list] == [DEFAULT_HTTP_TIMEOUT] * 3
+    mock_get.assert_called_with(download_url, timeout=DEFAULT_HTTP_TIMEOUT)
+
+
+def test_retrieve_image_as_base64_propagates_download_timeout():
+    with patch("requests.get") as mock_get:
+        mock_get.side_effect = [
+            _graph_response({"@microsoft.graph.downloadUrl": "https://example.com/download/file.jpg"}),
+            requests.Timeout("read timed out"),
+        ]
+
+        with pytest.raises(requests.Timeout):
+            SharePointUtilities.retrieve_image_as_base64("drive", "folder/file.jpg", "token")
+
+
+CUSTOM_TIMEOUT = (1, 2)
+DRIVES = {"value": [{"id": "drive", "webUrl": "https://tenant.sharepoint.com/sites/site/library"}]}
+
+
+@pytest.mark.parametrize(
+    "call, responses",
+    [
+        (
+            lambda t: SharePointUtilities.retrieve_image_as_base64("drive", "a/b.jpg", "token", timeout=t),
+            {"get": [Mock(status_code=404), _graph_response({"@microsoft.graph.downloadUrl": "u"}), _graph_response()]},
+        ),
+        (
+            lambda t: SharePointUtilities.assign_item_permissions(
+                "tenant.sharepoint.com", "site", "library", "a/b.txt", "token", [], timeout=t
+            ),
+            {"get": [_graph_response(DRIVES)], "post": [_graph_response()]},
+        ),
+        (
+            lambda t: SharePointUtilities.rename_file(
+                "tenant.sharepoint.com", "site", "library", "a/b.txt", "token", "c.txt", timeout=t
+            ),
+            {"get": [_graph_response(DRIVES)], "patch": [_graph_response()]},
+        ),
+        (
+            lambda t: SharePointUtilities.save_file("drive", "a/b.txt", "token", bytearray(b"x"), timeout=t),
+            {"put": [_graph_response()]},
+        ),
+        (
+            lambda t: SharePointUtilities.update_sharepoint_columns("drive", "item", {"c": 1}, "token", timeout=t),
+            {"patch": [_graph_response()]},
+        ),
+        (
+            lambda t: SharePointUtilities.get_file_download_url("drive", "b.txt", "token", timeout=t),
+            {"get": [_graph_response({"@microsoft.graph.downloadUrl": "u"})]},
+        ),
+        (
+            lambda t: SharePointUtilities.get_download_urls_for_files_in_folder("drive", "a", "token", timeout=t),
+            {"get": [_graph_response({"value": []})]},
+        ),
+        (
+            lambda t: SharePointUtilities.get_items_in_folder("drive", "a", "token", timeout=t),
+            {"get": [_graph_response({"value": []})]},
+        ),
+        (
+            lambda t: SharePointUtilities.get_drive_id("tenant.sharepoint.com", "site", "library", {}, timeout=t),
+            {"get": [_graph_response(DRIVES)]},
+        ),
+        (
+            lambda t: SharePointUtilities.get_list_items("tenant.sharepoint.com", "site", "list", "token", timeout=t),
+            {"get": [_graph_response({"value": [], "@odata.nextLink": "next"}), _graph_response({"value": []})]},
+        ),
+    ],
+    ids=[
+        "retrieve_image_as_base64",
+        "assign_item_permissions",
+        "rename_file",
+        "save_file",
+        "update_sharepoint_columns",
+        "get_file_download_url",
+        "get_download_urls_for_files_in_folder",
+        "get_items_in_folder",
+        "get_drive_id",
+        "get_list_items",
+    ],
+)
+def test_caller_supplied_timeout_is_passed_to_every_request(call, responses):
+    mocks = {}
+    with (
+        patch("requests.get") as mocks["get"],
+        patch("requests.post") as mocks["post"],
+        patch("requests.put") as mocks["put"],
+        patch("requests.patch") as mocks["patch"],
+    ):
+        for method, side_effect in responses.items():
+            mocks[method].side_effect = side_effect
+
+        call(CUSTOM_TIMEOUT)
+
+    calls = [c for m in mocks.values() for c in m.call_args_list]
+    assert len(calls) == sum(len(r) for r in responses.values())
+    assert all(c.kwargs["timeout"] == CUSTOM_TIMEOUT for c in calls)
 
 
 # endregion

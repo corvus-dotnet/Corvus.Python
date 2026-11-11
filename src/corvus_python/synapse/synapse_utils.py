@@ -3,6 +3,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 import time
 
+from corvus_python.http_timeouts import DEFAULT_HTTP_TIMEOUT, HttpTimeout
 from corvus_python.monitoring.tracing import all_methods_start_new_current_span_with_method_name
 from opentelemetry import trace
 
@@ -41,11 +42,16 @@ class SynapseUtilities:
 
     This class provides methods for creating and monitoring pipeline runs,
     retrieving workspace information, and fetching linked services.
+
+    Every HTTP request it makes has a timeout, set by the optional keyword-only ``timeout`` argument: either a number
+    of seconds or a ``(connect, read)`` tuple. It defaults to ``corvus_python.http_timeouts.DEFAULT_HTTP_TIMEOUT``.
+    A request that times out raises ``requests.Timeout``, which is not caught or retried.
     """
 
-    def __init__(self, workspace_name: str, access_token: str):
+    def __init__(self, workspace_name: str, access_token: str, *, timeout: HttpTimeout = DEFAULT_HTTP_TIMEOUT):
         self.workspace_endpoint = f"https://{workspace_name}.dev.azuresynapse.net"
         self.access_token = access_token
+        self.timeout = timeout
 
     def create_pipeline_run(
         self,
@@ -61,6 +67,9 @@ class SynapseUtilities:
 
         Returns:
             str: The ID of the created pipeline run.
+
+        Raises:
+            requests.Timeout: If the request times out.
         """
 
         url = (
@@ -70,7 +79,7 @@ class SynapseUtilities:
 
         headers = {"Authorization": f"Bearer {self.access_token}"}
 
-        response = requests.post(url, json=pipeline_parameters, headers=headers)
+        response = requests.post(url, json=pipeline_parameters, headers=headers, timeout=self.timeout)
 
         pipeline_run_id = response.json()["runId"]
 
@@ -87,6 +96,10 @@ class SynapseUtilities:
 
         Returns:
             str: The final status of the pipeline run.
+
+        Raises:
+            requests.Timeout: If a status request times out. This is separate from ``timeout_mins``, which limits
+                the total time spent waiting for the run.
         """
 
         url = f"{self.workspace_endpoint}/pipelineruns/{run_id}?api-version=2020-12-01"
@@ -99,7 +112,7 @@ class SynapseUtilities:
         timeout_at = now + timedelta(minutes=timeout_mins)
 
         while not completed:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=self.timeout)
 
             if response.status_code == 200:
                 status = response.json()["status"]
@@ -132,6 +145,9 @@ class SynapseUtilities:
 
         Returns:
             str: The URL of the pipeline run in the Azure Synapse Analytics portal.
+
+        Raises:
+            requests.Timeout: If the workspace request times out.
         """
         workspace_resource_id = self.get_workspace_resource_id()
         workspace_resource_id_encoded = urllib.parse.quote_plus(workspace_resource_id)
@@ -147,12 +163,15 @@ class SynapseUtilities:
 
         Returns:
             str: The resource ID of the workspace.
+
+        Raises:
+            requests.Timeout: If the request times out.
         """
         url = f"{self.workspace_endpoint}/workspace?api-version=2020-12-01"
 
         headers = {"Authorization": f"Bearer {self.access_token}"}
 
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=self.timeout)
 
         resource_id = response.json()["id"]
 
@@ -167,11 +186,14 @@ class SynapseUtilities:
 
         Returns:
             str: The JSON representation of the linked service.
+
+        Raises:
+            requests.Timeout: If the request times out.
         """
         url = f"{self.workspace_endpoint}/linkedservices/{linked_service_name}?api-version=2020-12-01"
 
         headers = {"Authorization": f"Bearer {self.access_token}"}
 
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=self.timeout)
 
         return response.json()
